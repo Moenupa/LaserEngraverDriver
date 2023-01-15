@@ -39,9 +39,13 @@ Note that there is a minor error, which due to the missing `bulkWrite()` functio
 
 ## Use Decompiled Jar to get the code
 
+**Ongoing**. And most promising option.
+
 It is known that the laser engravor uses driver [CH340](https://www.wch.cn/products/CH340.html) to provide a virtual COM port for usb connection.
 
 The manufacturer provides a [compiled java program](docs/MACSetup/software/Installation%20step%203/Laser%20engraving%20machine.jar) for Mac OS. The driver is a `.jar` file, and currently decompiled into `decompiled` folder. As the source code is not very readable, the next step is to find the protocol used for communication by enumerating the instructions.
+
+A part of the protocol is interpreted and verified, see [this file](src/sim.py).
 
 ## Switch to GRBL open source firmware
 
