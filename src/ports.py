@@ -5,3 +5,6 @@ def print_all_com_ports():
 
     for p, des, hwid in sorted(ports):
         print(f'{p}: {des} [{hwid}]')
+
+if __name__ == '__main__':
+    print_all_com_ports()
