@@ -51,7 +51,13 @@ def main():
     
     print(f'Serial Port Opened: {ser.is_open}')
 
-    # send_msg(ser, 'rect', 2, 2, 1, 1)
+    # send_msg(ser, 'read_version')
+    data = ''
+    while ser.in_waiting() > 0:
+        data += str(ser.read_all())
+
+    print(f'recv: {data}')
+
     ser.close()
     
 if __name__ == '__main__':
