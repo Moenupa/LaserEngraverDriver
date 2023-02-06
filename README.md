@@ -25,7 +25,7 @@ Use Wireshark to capture USB traffic and python lib `usbrply` to emulate instruc
 1. Reconstruct Python code to emulate the same instructions using `usbrply`, as the following demonstrates:
 
     ```sh
-    python -m env/Scripts/usbrply usbcap/my.pcapng > src/replay.py
+    python env/Scripts/usbrply usbcap/my.pcapng > src/replay.py
     ```
 1. Complete.
 

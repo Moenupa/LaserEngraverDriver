@@ -121,10 +121,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Replay captured USB packets')
     args = parser.parse_args()
 
-    usbcontext = usb1.USBContext()
-    dev = open_dev(usbcontext)
-    dev.claimInterface(0)
-    dev.resetDevice()
-    replay(dev)
+    with usb1.USBContext() as usbcontext:
+        dev = open_dev(usbcontext)
+        dev.claimInterface(0)
+        dev.resetDevice()
+        replay(dev)
 
 
