@@ -1,14 +1,27 @@
 import serial.tools.list_ports as ls
 import inspect
-import serial
+import logging
+import sys
+from datetime import date
 
 BYTEMAX = 0x0100
 TWOBYTEMAX = 0xffff
 
 class Config():
-    stdout = False
-    def __init__(self, stdout: bool) -> None:
-        self.stdout = stdout
+    def __init__(self, stdout: bool, log:str = f'./log/{date.today()}.log') -> None:
+        if stdout:
+            logging.basicConfig(
+                stream=sys.stdout, level=logging.DEBUG,
+                format='%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s',
+                datefmt='%Y-%m-%d %H:%M:%S',
+            )
+        else:
+            logging.basicConfig(
+                filename=log, level=logging.DEBUG,
+                format='%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s',
+                datefmt='%Y-%m-%d %H:%M:%S',
+            )
+        
 
 def int2bytes(i: int) -> list:
     '''
@@ -28,18 +41,14 @@ def print_all_com_ports():
 def get_object_properties(obj: object, start="_") -> list:
     attr = inspect.getmembers(obj, lambda a:not(inspect.isroutine(a)))
     return [a for a in attr if not(a[0].startswith(start))]
-def parse_4(w, h, x, y):
-    return int2Bints(w) + int2Bints(h) + int2Bints(x + 67 + h //2) + int2Bints(y + w//2)
-def adj_settings(sd, gl):
-    return int2Bints(sd) + int2Bints(gl) + [0, 0, 0, 0]
 
 msgs = {
     'version': [[0, 0, 0, 0]],
     'read_version': [[-1, 0, 4, 0]],
     'handshake': [[10, 0, 11, 0, 0, 0, 0, 0, 0, 0, 0]],
-    'rect': [[32, 0, 11], parse_4],
-    'settings': [[32, 0, 11], adj_settings],
-    'settings_qg': [[37, 0, 11], adj_settings],
+    'rect': [[32, 0, 11], ],
+    'settings': [[32, 0, 11], ],
+    'settings_qg': [[37, 0, 11], ],
     'unknown1': [[7, 0, 4, 0]],
     'unknown2': [[6, 0, 4, 0]],
     'tuoji': [[35, 0, 38, ]], # suspected main engraving function mainJFrame line 1914
@@ -48,16 +57,6 @@ msgs = {
     'keep-alive': [[11, 0, 4, 0]],
     'firmware_reset': [[-2, 0, 4, 0]],
 }
-
-def parse_msg(msg : str, *args) -> str:
-    return msg[0] + msg[-1](*args) if len(msg) > 1 else msg[0]
-
-def send_msg(ser : serial.Serial, msg : str, *args) -> None:
-    if config.stdout:
-        print("raw:   ", parse_msg(msgs[msg], *args))
-        print("stdout:", bytes(parse_msg(msgs[msg], *args)))
-    else:
-        ser.write(bytes(parse_msg(msgs[msg], *args)))
 
 if __name__ == '__main__':
     for i in [17, 255, 256]:

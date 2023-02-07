@@ -1,37 +1,71 @@
 import serial
 import logging
+import time
+from typing import Tuple, Callable
 
-from utils import int2bytes, Config
+from utils import int2bytes, Config, print_all_com_ports
 
 config = Config(stdout=False)
-logging.basicConfig(filename='./log/serial.log', level=logging.DEBUG)
 
-def send(ser: serial.Serial, b: bytes) -> None:
-    res = ser.write(b)
-    ser.flush()
-    logging.info(f'Send[{ser.port}] -> {b} ret{res}')
-    return
+class Instructions():
+    '''
+    Instruction Class that contains all decrypted protocols
 
-def recv(ser: serial.Serial) -> str:
-    data = ''
-    while ser.in_waiting > 0:
-        data += str(ser.read_all)
-    logging.info(f'Recv[{ser.port}] <- {data}')
-    return data
+    Pass a send function and a recieve function if required
+    '''
+    def connect(f: Callable):
+        logging.info('')
+        f([10, 0, 4, 0])
+    def read_firmware_version(f: Callable):
+        logging.info('')
+        f([0xff, 0, 4, 0])
 
 def main():
-    with serial.Serial('COM7', timeout=2.0) as ser:
-        logging.info(f'[Status]Connected to {ser.name} COM at port{ser.port}')
-        if not ser.isOpen():
-            ser.open()
-        logging.info(f'[Status]Check if serial port opened: [{ser.is_open}]')
+    ser = serial.Serial(
+        port='COM7', baudrate=115200, xonxoff=True, 
+        timeout=3.0, write_timeout=2.0,
+        stopbits=serial.STOPBITS_ONE
+    )
+    def getSendStatus(b: bytes) -> Tuple[int, str]:
+        '''
+        Get whether the last sent message is received based on
+        the last received bytes. Engraver preset receive codes are `9`
+        success, `8` fail, `NA` lost.
 
-        send(ser, bytes([]))
-        recv(ser)
+        Returns:
+          `0` if `LAST_RCV=9: success`
+          `-1` if `LAST_RCV=8: fail`
+          `1` if `else: unknown`   
+        '''
+        d = {
+            9: (0, "succ"),
+            8: (-1, "fail")
+        }
+        return d.get(b[0], (1, "unkn"))
+    def send(l: list) -> None:
+        res = ser.write(bytes(l))
+        ser.flush()
+        logging.info(f'[{ser.port}] -> ({res}) 0x{bytes(l).hex()}')
+        # sleep for 0.1 to wait for response
+        time.sleep(0.1)
+        return
+    def recv(timeout:int = 2) -> None:
+        while ser.in_waiting > 0:
+            data = ser.read_all()
+            logging.info(f'[{ser.port}] <- {getSendStatus(data)} 0x{data.hex()}')
+            time.sleep(timeout / 100.0)
+    def sendWithRet(arr: list, timeout:int = 2) -> None:
+        send(arr)
+        recv(timeout=timeout)
+    logging.info(f'Connected to {ser.name} at port{ser.port}')
+    if not ser.isOpen():
+        ser.open()
+    logging.info(f'Check if serial port opened: [{ser.is_open}]')
 
-        ser.close()
-    
-    print('Terminated...')
+    Instructions.connect(sendWithRet)
+    Instructions.read_firmware_version(sendWithRet)
+
+    ser.close()
     
 if __name__ == '__main__':
     main()
