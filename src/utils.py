@@ -3,6 +3,7 @@ import inspect
 import logging
 import sys
 from datetime import date
+from itertools import chain
 
 BYTEMAX = 0x0100
 TWOBYTEMAX = 0xffff
@@ -21,12 +22,25 @@ class Config():
                 format='%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s',
                 datefmt='%Y-%m-%d %H:%M:%S',
             )
-        
+def remapping(w, h, x, y) -> list:
+    '''
+    remap x-y coordinates to machine coordinates
+    format: [width, height, x, y]
 
+    `@param arr`: x-y coordinates
+    `@return`: machine coordinates
+    '''
+    return [w, h, (int) (x + 67 + w/2), (int) (y + 67 + h/2)]
+def arr2bytes(arr: list[int]) -> list:
+    '''
+    Convert a list of integers to a list of two-byte words.
+    Overflow (>0xFFFF) is ignored.
+    '''
+    return list(chain.from_iterable(map(int2bytes, arr)))
 def int2bytes(i: int) -> list:
     '''
-    Convert an integer to a list of two bytes.
-    Overflow (>= 2^16) is ignored.
+    Convert an integer to a list of two-byte words.
+    Overflow (>0xFFFF) is ignored.
     '''
     return [(i // BYTEMAX) % BYTEMAX, i % BYTEMAX]
 def emptyList() -> list:
@@ -42,24 +56,9 @@ def get_object_properties(obj: object, start="_") -> list:
     attr = inspect.getmembers(obj, lambda a:not(inspect.isroutine(a)))
     return [a for a in attr if not(a[0].startswith(start))]
 
-msgs = {
-    'version': [[0, 0, 0, 0]],
-    'read_version': [[-1, 0, 4, 0]],
-    'handshake': [[10, 0, 11, 0, 0, 0, 0, 0, 0, 0, 0]],
-    'rect': [[32, 0, 11], ],
-    'settings': [[32, 0, 11], ],
-    'settings_qg': [[37, 0, 11], ],
-    'unknown1': [[7, 0, 4, 0]],
-    'unknown2': [[6, 0, 4, 0]],
-    'tuoji': [[35, 0, 38, ]], # suspected main engraving function mainJFrame line 1914
-    'unknown3': [[10, 0, 4, 0]],
-    'unknown4': [[36, 0, 11, 0, 0, 0, 0, 0, 0, 0, 0]],
-    'keep-alive': [[11, 0, 4, 0]],
-    'firmware_reset': [[-2, 0, 4, 0]],
-}
-
 if __name__ == '__main__':
-    for i in [17, 255, 256]:
-        print(f'int {i} to bytes: {int2bytes(i)}')
-    print_all_com_ports()
-    
+    arr = [16, 16, 10, 10]
+    print(remapping(*arr))
+    print(arr2bytes(arr))
+    if (eval(input("Starting [Engraving] Input for Confirmation: "))): 
+        print("Confirmed")
