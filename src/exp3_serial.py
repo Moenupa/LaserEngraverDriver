@@ -22,16 +22,21 @@ class Instructions():
     def read_firmware_version(f: Callable, l: Callable = log) -> None:
         l('')
         f([0xff, 0, 4, 0])
-    def preview_location(f: Callable, w: int, h: int, x: int, y: int, l: Callable = log) -> None:
+    def start_firmware_update(f: Callable, l: Callable = log) -> None:
         l('')
+        f([0xfe, 0, 4, 0])
+    def end_firmware_update(f: Callable, l: Callable = log) -> None:
+        l('')
+        f([4, 0, 4, 0])
+    def preview_location(f: Callable, w: int, h: int, x: int, y: int, l: Callable = log) -> None:
+        l(f'(x={x}, y={y}, x2={x+w}, y2={y+h})')
         f([32, 0, 11] + arr2bytes(remapping(w=w, h=h, x=x, y=y)))
     def stop_preview(f: Callable, l: Callable = log) -> None:
         l('')
         f([33, 0, 4, 0])
     def move_to(f: Callable, x: int, y: int, l: Callable = log) -> None:
-        l('')
+        l(f'(x={x}, y={y})')
         Instructions.preview_location(f, w=0, h=0, x=x, y=y, l=l)
-        time.sleep(1)
         Instructions.stop_preview(f, l=l)
     def engrave(f: Callable, l: Callable = log) -> None:
         l('')
@@ -70,12 +75,14 @@ def main():
     def recv(timeout:int = 2) -> None:
         while ser.in_waiting > 0:
             data = ser.read_all()
-            logging.info(f'[{ser.port}] <- {getSendStatus(data)} 0x{data.hex()}')
+            level = logging.ERROR if getSendStatus(data)[0] < 0 else logging.INFO
+            logging.log(level, f'[{ser.port}] <- {getSendStatus(data)} 0x{data.hex()}')
             time.sleep(timeout / 100.0)
-    def sendWithRet(arr: list, timeout:int = 2, wait:float=0.1) -> None:
+    def sendWithRet(arr: list, timeout:int = 2, wait:float=0.1, interval:float = 0.5) -> None:
         send(arr)
         time.sleep(wait)
         recv(timeout=timeout)
+        time.sleep(interval)
     logging.info(f'Connected to {ser.name} at port{ser.port}')
     if not ser.isOpen():
         ser.open()
@@ -86,8 +93,7 @@ def main():
     # Instructions.preview_location(sendWithRet, *[2000, 2000, 2000, 2000])
     # time.sleep(5)
     # Instructions.stop_preview(sendWithRet)
-    time.sleep(3)
-    Instructions.move_to(sendWithRet, 0, 0)
+    Instructions.move_to(sendWithRet, 1000, 1000)
 
     ser.close()
     logging.info(f'disconnected\n{"-"*60}')
