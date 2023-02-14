@@ -52,6 +52,22 @@ def print_all_com_ports():
     ports = ls.comports()
     for p, des, hwid in sorted(ports):
         print(f'{p}: {des} [{hwid}]')
+def checksum(data: bytes) -> int:
+    '''
+    Get the checksum of the current function
+    '''
+    s = sum(data)
+    if (s > 0xff):
+        s = ~s + 1
+    return (s & 0xff).to_bytes(1, 'big')
+
+def data2packet(data: bytes, instr_type: bytes = b'\x34') -> bytes:
+    '''
+    Get the packet of the current function
+    '''
+    packet_len = len(data) + 4
+    return instr_type[:1] + bytes(int2bytes(packet_len)) + data + checksum(data)
+
 def get_object_properties(obj: object, start="_") -> list:
     attr = inspect.getmembers(obj, lambda a:not(inspect.isroutine(a)))
     return [a for a in attr if not(a[0].startswith(start))]
@@ -60,5 +76,6 @@ if __name__ == '__main__':
     arr = [16, 16, 10, 10]
     print(remapping(*arr))
     print(arr2bytes(arr))
-    if (eval(input("Starting [Engraving] Input for Confirmation: "))): 
-        print("Confirmed")
+    
+    print(checksum(b'\xff\xff\xff\xff').hex())
+    print(data2packet(b'\xff\xff\xff\xff').hex())
