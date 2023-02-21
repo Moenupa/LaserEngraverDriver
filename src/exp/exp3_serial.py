@@ -4,7 +4,7 @@ import time
 from typing import Tuple, Callable
 
 from utils import Config
-from utils import arr2bytes, remapping
+from utils import arr2DbBytes, remapping
 
 config = Config(stdout=False)
 
@@ -111,7 +111,7 @@ class EngraverConnection():
     def preview_location(self, w: int, h: int, x: int, y: int) -> None:
         logging.info(f'(x={x}, y={y}, x2={x+w}, y2={y+h})')
         self.sendWithACK(
-            [32, 0, 11] + arr2bytes(remapping(w=w, h=h, x=x, y=y)))
+            [32, 0, 11] + arr2DbBytes(remapping(w=w, h=h, x=x, y=y)))
 
     def stop_preview(self) -> None:
         logging.info('')

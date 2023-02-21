@@ -4,7 +4,7 @@ import time
 from typing import Tuple, Callable
 
 from utils import Config
-from utils import arr2bytes, remapping
+from utils import arr2DbBytes, remapping
 
 config = Config(stdout=False)
 
@@ -45,6 +45,7 @@ class EngraverConnection():
             timeout=3.0, write_timeout=2.0,
             stopbits=serial.STOPBITS_ONE
         )
+        self.timestep = 0.01
         logging.info(
             f'Connected to {self.ser.name} at port{self.ser.port}')
         logging.info(f'Check if serial port opened: [{self.open()}]')
@@ -67,13 +68,13 @@ class EngraverConnection():
             return
         len_sent, len_expected = 0, len(bytes(data))
         count = 0
-        while len_sent != len_expected and count < timeout * 10:
+        while len_sent != len_expected and count < timeout / self.timestep:
             res = self.ser.write(bytes(data))
             self.ser.flush()
             logging.info(
                 f'[{self.ser.port}] -> ({res}/{len_expected}) 0x{bytes(data).hex()}')
             len_sent += res
-            time.sleep(0.1)
+            time.sleep(self.timestep)
             count += 1
         if (len_sent != len_expected):
             logging.error(
@@ -85,13 +86,13 @@ class EngraverConnection():
                 logging.CRITICAL, f'[{self.ser.port}] <- [port not opened]')
             return
         count = 0
-        while self.ser.in_waiting > 0 and count < timeout * 10:
+        while self.ser.in_waiting > 0 and count < timeout / self.timestep:
             data = self.ser.read_all()
             level = logging.ERROR if Protocols.ack(
                 data)[0] < 0 else logging.INFO
             logging.log(level,
                         f'[{self.ser.port}] <- {Protocols.ack(data)} 0x{data.hex()}')
-            time.sleep(0.1)
+            time.sleep(self.timestep)
             count += 1
         if (self.ser.in_waiting > 0):
             logging.error(
@@ -114,7 +115,7 @@ class EngraverConnection():
 
     def close(self) -> None:
         self.ser.close()
-        logging.info(f'disconnected\n{"-"*60}')
+        logging.info(f'disconnected\n{"-"*80}')
 
     def connect(self) -> None:
         logging.info('')
@@ -131,11 +132,31 @@ class EngraverConnection():
     def end_firmware_update(self) -> None:
         logging.info('')
         self.sendWithACK([4, 0, 4, 0])
+        
+    def auxilary_positioning(self, status : bool) -> None:
+        """Toggle auxilary positioning mode
+
+        Args:
+            status (bool): true for on, false for off
+        """
+        logging.info(f'status={status}')
+        if status:
+            self.sendWithACK([6, 0, 4, 0], send_timeout=2)
+        else:
+            self.sendWithACK([7, 0, 4, 0], send_timeout=2)
+            
+    def update_carve_settings(self, depth : int, power:  int) -> None:
+        logging.info(f'depth={depth}, power={power}')
+        self.sendWithACK([37, 0, 11] + arr2DbBytes([depth, power]) + [0, 0, 0, 0])
+    
+    def update_accuracy_settings(self, weak_light : int, accuracy:  int) -> None:
+        logging.info(f'weak_light={weak_light}, accuracy={accuracy}')
+        self.sendWithACK([37, 0, 11] + [weak_light, accuracy] + [0, 0, 0, 0])
 
     def preview_location(self, w: int, h: int, x: int, y: int) -> None:
         logging.info(f'(x={x}, y={y}, x2={x+w}, y2={y+h})')
         self.sendWithACK(
-            [32, 0, 11] + arr2bytes(remapping(w=w, h=h, x=x, y=y)))
+            [32, 0, 11] + arr2DbBytes(remapping(w=w, h=h, x=x, y=y)))
 
     def stop_preview(self) -> None:
         logging.info('')
