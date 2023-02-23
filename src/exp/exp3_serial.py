@@ -3,8 +3,8 @@ import logging
 import time
 from typing import Tuple, Callable
 
-from utils import Config
-from utils import arr2DbBytes, remapping
+from exp.utils import Config
+from exp.utils import arr2DbBytes, remapping
 
 config = Config(stdout=False)
 

@@ -18,7 +18,7 @@ import usb1
 from usb1 import USBDeviceHandle
 import inspect
 from pprint import pprint
-from utils import get_object_properties
+from exp.utils import get_object_properties
 
 ALLOW_TIMEOUT = 2000
 
