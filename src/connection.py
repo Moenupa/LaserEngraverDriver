@@ -7,21 +7,35 @@ from itertools import chain
 
 from config import Config
 
+class MODEL_ID(IntEnum):
+    JL3 = 35
+class MODEL_META():
+    def __init__(self, w, h, hi, mid, lo) -> None:
+        # canvas (grid) width and height
+        self.w, self.h = w, h
+        # accuracy defaults, high, mid and low
+        self.hi, self.mid, self.lo = hi, mid, lo
+
+MODEL_META_LOOKUP = {
+    # Width Question: 365
+    # Medium Accuracy Question: 0.065
+    'JL3': MODEL_META(370, 410, 0.05, 0.0625, 0.075)
+}
 
 class OPCode(IntEnum):
     VERSION = 0xff
-    START_RESET = 6
-    STOP_RESET = 7
+    RESET_START = 6
+    RESET_STOP = 7
     CONNECT = 10
     HEARTBEAT = 11
-    STOP_PRINT = 22
-    PAUSE_PRINT = 24
-    RESUME_PRINT = 25
-    START_PREVIEW = 32
-    STOP_PREVIEW = 33
-    SEND_PRINT_CHUNK = 34
-    SEND_PRINT_METADATA = 35
-    START_PRINT = 36
+    ENGRAVE_STOP = 22
+    ENGRAVE_PAUSE = 24
+    ENGRAVE_RESUME = 25
+    PREVIEW_START = 32
+    PREVIEW_STOP = 33
+    SEND_ENGRAVE_CHUNK = 34
+    SEND_ENGRAVE_METADATA = 35
+    ENGRAVE_START = 36
     ADJUST_POWER_DEPTH = 37
     SET_PREVIEWPOWER_RESOLUTION = 40
 
@@ -29,10 +43,16 @@ class OPCode(IntEnum):
 class ACKCode(IntEnum):
     VERSION = 4
     OK = 9
-
+    METADATA_OK = 255
 
 class ByteList():
-    def _list(arr: list[int]) -> list[int]:
+    """convert integers to byte lists
+    
+    Args: `list[int]` or `int`
+    Returns: `list[int]`
+    """
+    
+    def _bytes(arr: list[int]) -> list[int]:
         return list(map(lambda x: x & 0xff, arr))
 
     def _endian_swap(arr: list[int], BE: bool) -> list[int]:
@@ -42,6 +62,9 @@ class ByteList():
         ret = [(i & 0xFF000000) >> 24, (i & 0xFF0000)
                >> 16, (i & 0xFF00) >> 8, i & 0xFF]
         return ByteList._endian_swap(ret, BE)
+    
+    def _single_byte(i: int) -> list[int]:
+        return [i & 0xFF]
 
     def _double_bytes(i: int, BE: bool = False) -> list[int]:
         ret = [(i & 0xFF00) >> 8, i & 0xFF]
@@ -50,14 +73,11 @@ class ByteList():
     def _double_bytes_arr(arr: list[int], BE: bool = False) -> list[int]:
         ret = list(chain.from_iterable(
             map(lambda x: ByteList._double_bytes(x, BE), arr)))
-        return ByteList._endian_swap(ret, BE)
+        return ret
 
 
 class Connection():
-    CHECKSUM_YES = True
-    CHECKSUM_NO = False
     MAXIMUM_READ_BYTES = 4
-    HEARTBEAT_INTERVAL_SECONDS = 7
 
     def _ack(data: bytes):
         try:
@@ -69,15 +89,24 @@ class Connection():
         s = sum(data)
         if (s > 0xff):
             s = ~s + 1
-        return (s & 0xff).to_bytes(1, 'big')
+        return s & 0xff
 
-    def _packet(data: list[int], op_type: OPCode, checksum: bool) -> bytes:
-        # form a packet, [op_type, pkt_len, pkt_len, ..data, checksum]
+    def _packet(op_type: OPCode, data: list[int] = [], checksum: bool = False) -> bytes:
+        """form a packet, [op_type, pkt_len, pkt_len, ..data, checksum]
+
+        Args:
+            op_type (OPCode): Instruction code
+            data (list[int], optional): data. Defaults to [].
+            checksum (bool, optional): include a checksum. Defaults to False.
+
+        Returns:
+            bytes: formatted packet, ready to send directly to the engraver
+        """
         pkt_len = len(data) + 4
         ret = [int(op_type)] + ByteList._double_bytes(pkt_len) + data + [0]
         if checksum:
-            ret[-1] = [Connection._checksum(ret)]
-        return bytes(ret)
+            ret[-1] = Connection._checksum(ret)
+        return bytes(ByteList._bytes(ret))
 
     def __init__(self) -> None:
         self.ser = serial.Serial(
@@ -97,48 +126,51 @@ class Connection():
             self.ser.open()
         return self.ser.is_open
 
-    def send(self, data: list, timeout: float) -> None:
+    def send(self, data: bytes, timeout: float) -> None:
         if not self.open():
             logging.log(
-                logging.CRITICAL, f'[{self.ser.port}] -> [port not opened] 0x{bytes(data).hex()}')
+                logging.CRITICAL, f'[{self.ser.port} NOT OPENED] -> 0x{data.hex()}')
             return
-        len_sent, len_expected = 0, len(bytes(data))
-        count = 0
-        while len_sent != len_expected and count < timeout / self.timestep:
-            res = self.ser.write(bytes(data))
+        len_sent, len_expected = 0, len(data)
+        start = time.time()
+        
+        # expects to send more, and within timeout
+        while len_sent != len_expected and time.time() - start < timeout:
+            res = self.ser.write(data)
             self.ser.flush()
             logging.info(
-                f'[{self.ser.port}] -> ({res}/{len_expected}) 0x{bytes(data).hex()}')
+                f'[{self.ser.port}] -> ({res}/{len_expected}) 0x{data.hex()}')
             len_sent += res
             time.sleep(self.timestep)
-            count += 1
         if (len_sent != len_expected):
             logging.error(
-                f'[{self.ser.port}] -> ({len_sent}/{len_expected}) 0x{bytes(data).hex()}')
+                f'[{self.ser.port}] -> ({len_sent}/{len_expected}) 0x{data.hex()}')
 
-    def receive(self, timeout: float) -> None:
+    def receive(self, timeout: float) -> bool:
         if not self.open():
             logging.log(
                 logging.CRITICAL, f'[{self.ser.port}] <- [port not opened]')
             return
-        count = 0
-        while self.ser.in_waiting > 0 and count < timeout / self.timestep:
+        start = time.time()
+        level = logging.INFO
+        
+        # expects to receive more, and within timeout
+        while self.ser.in_waiting > 0 and time.time() - start < timeout:
             data = self.ser.read_all()
             if Connection._ack(data)[0] < 0:
                 level = logging.ERROR
             elif Connection._ack(data)[0] == 0:
                 level = logging.WARNING
-            else:
-                level = logging.INFO
             logging.log(level,
                         f'[{self.ser.port}] <- {Connection._ack(data)} 0x{data.hex()}')
             time.sleep(self.timestep)
-            count += 1
         if (self.ser.in_waiting > 0):
             logging.error(
                 f'[{self.ser.port}] -> (timeout {timeout}s insufficient) port still has {self.ser.in_waiting} bytes')
+        
+        return level < logging.ERROR
 
-    def sendWithACK(self, arr: list, send_timeout: float = 1.0, ack_timeout: float = 2.0, ack_interval: float = 0.1, instr_interval: float = 0.2) -> None:
+    def sendWithACK(self, arr: bytes, send_timeout: float = 1.0, ack_timeout: float = 2.0, ack_interval: float = 0.1, instr_interval: float = 0.2) -> bool:
         """send data to serial port and get ACK message
 
         Args:
@@ -150,42 +182,9 @@ class Connection():
         """
         self.send(arr, timeout=send_timeout)
         time.sleep(ack_interval)
-        self.receive(timeout=ack_timeout)
+        ret = self.receive(timeout=ack_timeout)
         time.sleep(instr_interval)
+        return ret
 
     def close(self) -> None:
         self.ser.close()
-
-
-class Engraver(Connection):
-    def connect(self) -> None:
-        logging.info('')
-        self.sendWithACK(Connection._packet([], OPCode.CONNECT, False))
-
-    def version(self) -> None:
-        logging.info('')
-        self.sendWithACK(Connection._packet([], OPCode.VERSION, False))
-        
-    def preview(self, w: int, h: int, x: int, y: int) -> None:
-        logging.info(f'(x={x}, y={y}, x2={x+w}, y2={y+h})')
-        data = ByteList._double_bytes_arr(
-            [w, h, (int) (x + 67 + w/2), (int) (y + 67 + h/2)]
-        )
-        self.sendWithACK(Connection._packet(data, OPCode.START_PREVIEW, False))
-    
-    def stop_preview(self) -> None:
-        logging.info('')
-        self.sendWithACK(Connection._packet([], OPCode.STOP_PREVIEW, False))
-    
-    def move_to(self, x: int, y: int) -> None:
-        logging.info('(x={x}, y={y})')
-        self.preview(x, y, 0, 0)
-        self.stop_preview()
-
-
-if __name__ == '__main__':
-    engraver = Engraver()
-    engraver.connect()
-    engraver.version()
-    engraver.move_to(200, 200)
-    engraver.close()

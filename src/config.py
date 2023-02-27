@@ -3,6 +3,7 @@ import sys
 from datetime import date
 
 class Config():
+        
     def __init__(self, stdout: bool, log:str = f'./log/{date.today()}.log') -> None:
         if stdout:
             logging.basicConfig(
