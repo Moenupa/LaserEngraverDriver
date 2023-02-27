@@ -42,6 +42,7 @@ class OPCode(IntEnum):
 
 class ACKCode(IntEnum):
     VERSION = 4
+    ERROR = 8
     OK = 9
     METADATA_OK = 255
 
@@ -109,24 +110,34 @@ class Connection():
         return bytes(ByteList._bytes(ret))
 
     def __init__(self) -> None:
+        self.config = Config(stdout=False)
+        logging.info(f'logging initialized{"-"*37 + " START" + ""*37}')
+        if self.config.dry_run:
+            return
+
         self.ser = serial.Serial(
             port='COM7', baudrate=115200, xonxoff=True,
             timeout=3.0, write_timeout=2.0,
             stopbits=serial.STOPBITS_ONE
         )
-        self.config = Config(stdout=False)
         self.timestep = 0.01
-        logging.info(f'disconnected\n{"-"*80}')
         logging.info(
             f'Connected to {self.ser.name} at port{self.ser.port}')
         logging.info(f'Check if serial port opened: [{self.open()}]')
 
     def open(self) -> bool:
+        if self.config.dry_run:
+            return True
+
         if not self.ser.is_open:
             self.ser.open()
         return self.ser.is_open
 
     def send(self, data: bytes, timeout: float) -> None:
+        if self.config.dry_run:
+            logging.info(
+                f'[{self.ser.port}] -> ({res}/{len_expected}) 0x{data.hex()}')
+
         if not self.open():
             logging.log(
                 logging.CRITICAL, f'[{self.ser.port} NOT OPENED] -> 0x{data.hex()}')
@@ -140,16 +151,19 @@ class Connection():
             self.ser.flush()
             logging.info(
                 f'[{self.ser.port}] -> ({res}/{len_expected}) 0x{data.hex()}')
-            len_sent += res
+            len_sent = res
             time.sleep(self.timestep)
         if (len_sent != len_expected):
             logging.error(
                 f'[{self.ser.port}] -> ({len_sent}/{len_expected}) 0x{data.hex()}')
 
     def receive(self, timeout: float) -> bool:
+        if self.config.dry_run:
+            return True
+
         if not self.open():
             logging.log(
-                logging.CRITICAL, f'[{self.ser.port}] <- [port not opened]')
+                logging.CRITICAL, f'[{self.ser.port} NOT OPENED] <- ERROR')
             return
         start = time.time()
         level = logging.INFO
@@ -157,12 +171,15 @@ class Connection():
         # expects to receive more, and within timeout
         while self.ser.in_waiting > 0 and time.time() - start < timeout:
             data = self.ser.read_all()
-            if Connection._ack(data)[0] < 0:
-                level = logging.ERROR
-            elif Connection._ack(data)[0] == 0:
+            ack_code, ack_name = Connection._ack(data)
+
+            if ack_code == 0:
                 level = logging.WARNING
+            if 'ERROR' in ack_name:
+                level = logging.ERROR
+
             logging.log(level,
-                        f'[{self.ser.port}] <- {Connection._ack(data)} 0x{data.hex()}')
+                        f'[{self.ser.port}] <- ({ack_code}, {ack_name}) 0x{data.hex()}')
             time.sleep(self.timestep)
         if (self.ser.in_waiting > 0):
             logging.error(
@@ -179,6 +196,9 @@ class Connection():
             `ack_timeout` (float, optional): timeout for ack. Defaults to 2.0.
             `ack_interval` (float, optional): wait time between send & ack. Defaults to 0.1.
             `instr_interval` (float, optional): wait time between each instructions. Defaults to 0.2.
+
+        Returns:
+            True if ACK, else False
         """
         self.send(arr, timeout=send_timeout)
         time.sleep(ack_interval)
@@ -187,4 +207,8 @@ class Connection():
         return ret
 
     def close(self) -> None:
+        logging.info(f'closing serial port\n{"-"*38 + " EOF" + "-"*38}')
+
+        if self.config.dry_run:
+            return
         self.ser.close()

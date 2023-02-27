@@ -3,7 +3,7 @@ from math import ceil
 import time
 
 from connection import Connection, OPCode, ByteList
-from canvas import Point, Region, region_100x100
+from canvas import Point, Region, Rect
 
 class MetaData():
     def __init__(self, hint: str, w: int, h: int, power: int = 1000, depth: int = 10) -> None:
@@ -90,7 +90,7 @@ class Engraver(Connection):
         logging.info('')
         self.sendWithACK(Connection._packet(OPCode.SEND_ENGRAVE_CHUNK, data, True))
         
-    def engrave(self, carve: MetaData, cut: MetaData, center: Point, repeats: int, carvePoints, cutPoints: list[Point]) -> None:
+    def engrave(self, carve: MetaData, cut: MetaData, center: Point, repeats: int, carvePoints, cutPoints: Region) -> None:
         # array length is [widthInByte * height + len(cutPoints) * 4]
         # carve picture: widthInByte * height
         # cut points: cutPoints, (x, y) in double byte
@@ -103,7 +103,7 @@ class Engraver(Connection):
         data = []
         data += carvePoints
         # sequence: x, x>>8, y, y>>8
-        data += ByteList._double_bytes_arr(Region._toList(cutPoints), True)
+        data += ByteList._double_bytes_arr(cutPoints.toList(), True)
         self.engrave_data_chunk(data)
         self.hello()
         
@@ -112,13 +112,14 @@ class Engraver(Connection):
 
 if __name__ == '__main__':
     engraver = Engraver()
-    # engraver.hello()
-    # engraver.version()
-    # engraver.move_to(100, 100)
+    engraver.hello()
+    engraver.version()
+    engraver.move_to(100, 100)
     
     carve = MetaData('carve', 0, 0)
     cut = MetaData('cut', 200, 200)
     center = Point(100, 100)
-    engraver.engrave(carve, cut, center, 1, [], region_100x100)
+    rect = Rect(0, 0, 200, 200)
+    engraver.engrave(carve, cut, center, 1, [], rect)
     
-    # engraver.close()
+    engraver.close()
