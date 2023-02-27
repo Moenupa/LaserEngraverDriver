@@ -1,5 +1,5 @@
 from itertools import chain
-from pprint import pprint
+import pygame
 
 class Point():
     def __init__(self, x: int, y: int):
@@ -13,34 +13,34 @@ class Point():
 class Shape():
     @staticmethod
     def _drawEdge(src: Point, dest: Point) -> list[Point]:
-        diff = (dest.x - src.x, dest.y - src.y)
-        if diff[0] == 0 and diff[1] == 0:
+        deltas = (dest.x - src.x, dest.y - src.y)
+        if deltas[0] == 0 and deltas[1] == 0:
             return [src]
-        elif diff[0] == 0:
+        elif deltas[0] == 0:
             # xDiff is 0, the line is `|`, 
-            return Shape._drawVerticalLine(src.x, src.y, diff[1])
-        elif diff[1] == 0:
+            return Shape._drawVerticalLine(src.x, src.y, deltas[1])
+        elif deltas[1] == 0:
             # yDiff is 0, the line is `-`
-            return Shape._drawHorizontalLine(src.x, src.y, diff[0])
+            return Shape._drawHorizontalLine(src.x, src.y, deltas[0])
         
         # else plot a curve
         points = []
-        slope = diff[1] / diff[0]
-        for xid in range(0, diff[0], 1 if diff[0] > 0 else -1):
+        slope = deltas[1] / deltas[0]
+        for xid in range(0, deltas[0], 1 if deltas[0] > 0 else -1):
             points.append(Point(src.x + xid, round(xid * slope + src.y)))
         return points
     
     @staticmethod
-    def _drawVerticalLine(x: int, y0: int, yDiff: int) -> list[Point]:
+    def _drawVerticalLine(x: int, y0: int, dy: int) -> list[Point]:
         points = []
-        for yid in range(0, yDiff, 1 if yDiff > 0 else -1):
+        for yid in range(0, dy, 1 if dy > 0 else -1):
             points.append(Point(x, y0 + yid))
         return points
     
     @staticmethod
-    def _drawHorizontalLine(x0: int, y: int, xDiff: int) -> list[Point]:
+    def _drawHorizontalLine(x0: int, y: int, dx: int) -> list[Point]:
         points = []
-        for xid in range(0, xDiff, 1 if xDiff > 0 else -1):
+        for xid in range(0, dx, 1 if dx > 0 else -1):
             points.append(Point(x0 + xid, y))
         return points
     
@@ -75,12 +75,6 @@ class Shape():
             x0, y0 = min(x0, p.x), min(y0, p.y)
             x1, y1 = max(x1, p.x), max(y1, p.y)
         return (x0, y0, x1, y1)
-    
-    @staticmethod
-    def _getMetaData(points: list[Point]):
-        x0, y0, x1, y1 = Shape._getBoundingBox(points)
-        center = Point((x0 + x1) // 2, (y0 + y1) // 2)
-        return center, x1-x0, y1-y0
 
 class Canvas():
     def __init__(self, points = []) -> None:
@@ -97,9 +91,45 @@ class Canvas():
 
     def toList(self) -> list[int]:
         return Shape._toFlatList(self.points)
-    
-    def getMetaData(self):
-        return Shape._getMetaData(self.points)
+
+    def preview(self) -> bool:
+        CANVAS_SIZE = 370 * 2
+        PADDING = 10
+        WINDOW_SIZE = CANVAS_SIZE + PADDING * 2
+        
+        WHITE = [255] * 3
+        GRAY = [50] * 3
+        
+        def drawGrid(window, color, blockSize = 20):
+            for x in range(0, CANVAS_SIZE, blockSize):
+                for y in range(0, CANVAS_SIZE, blockSize):
+                    rect = pygame.Rect(x + PADDING, y + PADDING, blockSize, blockSize)
+                    pygame.draw.rect(window, color, rect, 1)
+        
+        pygame.init()
+        window = pygame.display.set_mode((WINDOW_SIZE, WINDOW_SIZE), pygame.DOUBLEBUF | pygame.RESIZABLE)
+        pygame.display.set_caption('Preview of Canvas')
+
+        run = True
+        engrave = False
+        while run:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    run = False
+                elif event.type == pygame.KEYDOWN:
+                    engrave = True
+
+            window.fill(GRAY)
+            window.fill(0, (PADDING, PADDING, CANVAS_SIZE, CANVAS_SIZE))
+            
+            drawGrid(window, GRAY)
+            for point in self.points:
+                window.set_at((point.x // 10 + PADDING, point.y // 10 + PADDING), WHITE)
+            
+            pygame.display.flip()
+
+        pygame.quit()
+        return engrave
 
 if __name__ == "__main__":
-    pass
+    print(Canvas(Shape._drawRect(0, 0, 200, 200)).preview())

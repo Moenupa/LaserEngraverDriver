@@ -21,6 +21,12 @@ class MetaData():
         ret += ByteList._double_bytes_arr([self.power, self.depth])
         return ret
 
+    def _parse_from(name: str, canvas: Canvas) -> 'MetaData':
+        x0, y0, x1, y1 = Shape._getBoundingBox(canvas.points)
+        center = Point((x0 + x1) // 2, (y0 + y1) // 2)
+        meta_data = MetaData(name, x1-x0, y1-y0)
+        return center, meta_data
+    
 class Engraver(Connection):
     HEARTBEAT_INTERVAL_SECONDS = 7
     
@@ -87,24 +93,29 @@ class Engraver(Connection):
         for chunk in Connection._chunk(data):
             self.sendWithACK(Connection._packet(OPCode.SEND_ENGRAVE_CHUNK, chunk, True))
         
-    def engrave(self, carve: MetaData, cut: MetaData, center: Point, repeats: int, carvePoints, cutPoints: Canvas) -> None:
+    def engrave(self, repeats: int, cut: Canvas, carve: MetaData = MetaData('carve', 0, 0), carvePoints = []) -> None:
         # array length is [widthInByte * height + len(cutPoints) * 4]
         # carve picture: widthInByte * height
         # cut points: cutPoints, (x, y) in double byte
+        logging.info(f'repeats: {repeats}')
+        
         logging.info(f'carving meta: {carve}')
-        logging.info(f'cutting meta: {cut}')
         
-        logging.info(f'center: {center}, repeats: {repeats}')
+        center, cutMetaData = MetaData._parse_from('cut', cut)
+        logging.info(f'cutting meta: {cutMetaData}, center: {center}')
         
-        self.engrave_metadata(carve, cut, len(cutPoints), center, repeats)
+        if not cut.preview():
+            logging.warning('cutting preview cancelled by user, as no keyboard press detected')
+            return
+        
+        self.engrave_metadata(carve, cutMetaData, len(cut), center, repeats)
         self.hello()
         time.sleep(0.3)
         self.hello()
         time.sleep(0.3)
         data = []
-        data += carvePoints
         # sequence: x, x>>8, y, y>>8
-        data += ByteList._double_bytes_arr(cutPoints.toList(), True)
+        data += ByteList._double_bytes_arr(cut.toList(), BE=True)
         self.engrave_data_chunk(data)
         self.hello()
         
@@ -117,14 +128,9 @@ if __name__ == '__main__':
     engraver.version()
     # engraver.move_to(0, 0)
     # engraver.move_to(370*20, 370*20)
-    
-    carve = MetaData('carve', 0, 0)
 
-    canvas = Canvas(Shape._drawRect(0, 0, 200, 200))
+    canvas = Canvas(Shape._drawRect(0, 0, 10, 10))
     # canvas = Canvas(Shape._drawEdge(Point(0, 0), Point(200, 100)))
-    center, w, h = canvas.getMetaData()
-    cut = MetaData('cut', w, h)
-
-    engraver.engrave(carve, cut, center, 1, [], canvas)
+    engraver.engrave(1, canvas)
     
     engraver.close()

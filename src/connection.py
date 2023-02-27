@@ -129,7 +129,7 @@ class Connection():
 
     def __init__(self) -> None:
         self.config = Config(stdout=False)
-        logging.info(f'logging initialized\n{"-"*37 + " START" + ""*37}')
+        logging.info(f'logging initialized\n{"-"*37 + " START" + "-"*37}')
         if self.config.dry_run:
             return
 
@@ -154,7 +154,8 @@ class Connection():
     def send(self, data: bytes, timeout: float) -> None:
         if self.config.dry_run:
             logging.info(
-                f'[{self.ser.port}] -> ({res}/{len_expected}) 0x{list(data)}')
+                f'[DRY_RUN] -> ({len(data)}/{len(data)}) {list(data)}')
+            return
 
         if not self.open():
             logging.log(
@@ -177,6 +178,7 @@ class Connection():
 
     def receive(self, timeout: float) -> bool:
         if self.config.dry_run:
+            logging.info(f'[DRY_RUN] <- (0, 0) NA')
             return True
 
         if not self.open():
