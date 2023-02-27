@@ -22,12 +22,6 @@ class MetaData():
 class Engraver(Connection):
     HEARTBEAT_INTERVAL_SECONDS = 7
     
-    # def __init__(self) -> None:
-    #     print('DEBUG: Engraver.__init__')
-    
-    # def sendWithACK(self, arr: list) -> None:
-    #     print(list(arr))
-    
     def hello(self) -> None:
         logging.info('')
         self.sendWithACK(Connection._packet(OPCode.CONNECT))

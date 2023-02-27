@@ -136,7 +136,7 @@ class Connection():
     def send(self, data: bytes, timeout: float) -> None:
         if self.config.dry_run:
             logging.info(
-                f'[{self.ser.port}] -> ({res}/{len_expected}) 0x{data.hex()}')
+                f'[{self.ser.port}] -> ({res}/{len_expected}) 0x{list(data)}')
 
         if not self.open():
             logging.log(
