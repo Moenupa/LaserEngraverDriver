@@ -3,7 +3,7 @@ from math import ceil
 import time
 
 from connection import Connection, OPCode, ByteList
-from canvas import Point, Region, Rect
+from canvas import Point, Canvas, Shape
 
 class MetaData():
     def __init__(self, hint: str, w: int, h: int, power: int = 1000, depth: int = 10) -> None:
@@ -12,6 +12,8 @@ class MetaData():
         self.h = h
         self.power = power
         self.depth = depth
+    def __str__(self):
+        return f'{self.hint}: w={self.w}, h={self.h}, power={self.power}, depth={self.depth}'
     def toByteList(self, dataBeginsAt: list[int]) -> list[int]:
         ret = []
         ret += ByteList._double_bytes_arr([self.w, self.h])
@@ -82,12 +84,17 @@ class Engraver(Connection):
     
     def engrave_data_chunk(self, data: list[int]) -> None:
         logging.info('')
-        self.sendWithACK(Connection._packet(OPCode.SEND_ENGRAVE_CHUNK, data, True))
+        for chunk in Connection._chunk(data):
+            self.sendWithACK(Connection._packet(OPCode.SEND_ENGRAVE_CHUNK, chunk, True))
         
-    def engrave(self, carve: MetaData, cut: MetaData, center: Point, repeats: int, carvePoints, cutPoints: Region) -> None:
+    def engrave(self, carve: MetaData, cut: MetaData, center: Point, repeats: int, carvePoints, cutPoints: Canvas) -> None:
         # array length is [widthInByte * height + len(cutPoints) * 4]
         # carve picture: widthInByte * height
         # cut points: cutPoints, (x, y) in double byte
+        logging.info(f'carving meta: {carve}')
+        logging.info(f'cutting meta: {cut}')
+        
+        logging.info(f'center: {center}, repeats: {repeats}')
         
         self.engrave_metadata(carve, cut, len(cutPoints), center, repeats)
         self.hello()
@@ -108,12 +115,16 @@ if __name__ == '__main__':
     engraver = Engraver()
     engraver.hello()
     engraver.version()
-    engraver.move_to(100, 100)
+    # engraver.move_to(0, 0)
+    # engraver.move_to(370*20, 370*20)
     
     carve = MetaData('carve', 0, 0)
-    cut = MetaData('cut', 200, 200)
-    center = Point(100, 100)
-    rect = Rect(0, 0, 200, 200)
-    engraver.engrave(carve, cut, center, 1, [], rect)
+
+    canvas = Canvas(Shape._drawRect(0, 0, 200, 200))
+    # canvas = Canvas(Shape._drawEdge(Point(0, 0), Point(200, 100)))
+    center, w, h = canvas.getMetaData()
+    cut = MetaData('cut', w, h)
+
+    engraver.engrave(carve, cut, center, 1, [], canvas)
     
     engraver.close()

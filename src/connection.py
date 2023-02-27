@@ -8,7 +8,7 @@ from itertools import chain
 from config import Config
 
 class MODEL_ID(IntEnum):
-    JL3 = 35
+    JL3 = 36
 class MODEL_META():
     def __init__(self, w, h, hi, mid, lo) -> None:
         # canvas (grid) width and height
@@ -17,13 +17,13 @@ class MODEL_META():
         self.hi, self.mid, self.lo = hi, mid, lo
 
 MODEL_META_LOOKUP = {
-    # Width Question: 365
     # Medium Accuracy Question: 0.065
-    'JL3': MODEL_META(370, 410, 0.05, 0.0625, 0.075)
+    'JL3': MODEL_META(w=370, h=370, hi=0.05, mid=0.065, lo=0.075)
 }
 
 class OPCode(IntEnum):
     VERSION = 0xff
+    NA = 0
     RESET_START = 6
     RESET_STOP = 7
     CONNECT = 10
@@ -79,19 +79,23 @@ class ByteList():
 
 class Connection():
     MAXIMUM_READ_BYTES = 4
+    MAX_CHUNK_SIZE = 1900
 
+    @staticmethod
     def _ack(data: bytes):
         try:
             return (int(data[0]), ACKCode(data[0]).name)
         except ValueError:
             return (0, f"unknown_{data[0]}")
 
+    @staticmethod
     def _checksum(data) -> bytes:
         s = sum(data)
         if (s > 0xff):
             s = ~s + 1
         return s & 0xff
 
+    @staticmethod
     def _packet(op_type: OPCode, data: list[int] = [], checksum: bool = False) -> bytes:
         """form a packet, [op_type, pkt_len, pkt_len, ..data, checksum]
 
@@ -109,9 +113,23 @@ class Connection():
             ret[-1] = Connection._checksum(ret)
         return bytes(ByteList._bytes(ret))
 
+    @staticmethod
+    def _packet_decrypt(hex_string: str) -> list:
+        data = bytes.fromhex(hex_string)
+        try:
+            op = OPCode(data[0]).name
+        except ValueError:
+            op = OPCode.NA.name
+        return (op, list(data[3:-1]))
+    
+    @staticmethod
+    def _chunk(_list: list[int], n: int = MAX_CHUNK_SIZE):
+        for i in range(0, len(_list), n):
+            yield _list[i : i+n]
+
     def __init__(self) -> None:
         self.config = Config(stdout=False)
-        logging.info(f'logging initialized{"-"*37 + " START" + ""*37}')
+        logging.info(f'logging initialized\n{"-"*37 + " START" + ""*37}')
         if self.config.dry_run:
             return
 
