@@ -96,7 +96,7 @@ class Engraver(Connection):
         # array length is [widthInByte * height + len(cutPoints) * 4]
         # carve picture: widthInByte * height
         # cut points: cutPoints, (x, y) in double byte
-        logging.info(f'preparing engraving... doing repeats: {repeats}')
+        logging.info(f'preparing engraving... configured repeats: {repeats}')
 
         logging.info(f'preparing carving meta: {carve}')
         
