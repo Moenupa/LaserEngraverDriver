@@ -58,6 +58,17 @@ class Shape():
         return points
 
     @staticmethod
+    def _drawCircle(x0, y0, r) -> list[Point]:
+        points = []
+        for x in range(x0 - r, x0 + r):
+            y = round(y0 + (r ** 2 - (x - x0) ** 2) ** 0.5)
+            points.append(Point(x, y))
+        for x in range(x0 + r, x0 - r, -1):
+            y = round(y0 - (r ** 2 - (x - x0) ** 2) ** 0.5)
+            points.append(Point(x, y))
+        return points
+
+    @staticmethod
     def _toString(points: list[Point]) -> str:
         return ", ".join(str(p) for p in points)
     
@@ -132,4 +143,4 @@ class Canvas():
         return engrave
 
 if __name__ == "__main__":
-    print(Canvas(Shape._drawRect(0, 0, 200, 200)).preview())
+    print(Canvas(Shape._drawCircle(200, 200, 100)).preview())
