@@ -131,9 +131,11 @@ class Connection():
 
     def __init__(self) -> None:
         self.config = Config(stdout=False)
-        logging.info(f'logging initialized\n{"-"*37 + " START" + "-"*37}')
         if self.config.dry_run:
+            logging.info(f'logging initialized\n{"-"*35 + "MOCK START" + "-"*35}')
             return
+        else:
+            logging.info(f'logging initialized\n{"-"*35 + "LOG  START" + "-"*35}')
 
         if 'nt' in os.name:
             self.ser = serial.Serial(
@@ -237,7 +239,7 @@ class Connection():
         return ret
 
     def close(self) -> None:
-        logging.info(f'closing serial port\n{"-"*38 + " EOF" + "-"*38}')
+        logging.info(f'closing serial port\n{"-"*35 + "END OF LOG" + "-"*35}')
 
         if self.config.dry_run:
             return

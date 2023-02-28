@@ -1,6 +1,5 @@
 import logging
 from math import ceil
-import time
 
 from connection import Connection, OPCode, ByteList
 from canvas import Point, Canvas, Shape
@@ -50,7 +49,7 @@ class Engraver(Connection):
         self.sendWithACK(Connection._packet(OPCode.PREVIEW_STOP))
     
     def move_to(self, x: int, y: int) -> None:
-        logging.info('(x={x}, y={y})')
+        logging.info(f'(x={x}, y={y})')
         self.preview(0, 0, x, y)
         self.preview_stop()
         
@@ -97,22 +96,21 @@ class Engraver(Connection):
         # array length is [widthInByte * height + len(cutPoints) * 4]
         # carve picture: widthInByte * height
         # cut points: cutPoints, (x, y) in double byte
-        logging.info(f'repeats: {repeats}')
-        
-        logging.info(f'carving meta: {carve}')
+        logging.info(f'preparing engraving... doing repeats: {repeats}')
+
+        logging.info(f'preparing carving meta: {carve}')
         
         center, cutMetaData = MetaData._parse_from('cut', cut)
-        logging.info(f'cutting meta: {cutMetaData}, center: {center}')
+        logging.info(f'preparing cutting meta: {cutMetaData}, center: {center}')
         
         if not cut.preview():
-            logging.warning('cutting preview cancelled by user, as no keyboard press detected')
+            logging.warning('engraving terminated by user: no confirmation during preview')
             return
         
+        logging.info(f'sending metadata')
         self.engrave_metadata(carve, cutMetaData, len(cut), center, repeats)
         self.hello()
-        time.sleep(0.3)
         self.hello()
-        time.sleep(0.3)
         data = []
         # sequence: x, x>>8, y, y>>8
         data += ByteList._double_bytes_arr(cut.toList(), BE=True)
