@@ -105,11 +105,11 @@ class Canvas():
         return Shape._toFlatList(self.points)
 
     def preview(self) -> bool:
-        CROP_REGION = 20
+        CROP_REGION = 999
         DEFAULT_SIZE = 370
         CANVAS_SIZE_INITIAL = min(CROP_REGION, DEFAULT_SIZE) * 20
         
-        ZOOM = 1
+        ZOOM = 10
         CANVAS_SIZE = CANVAS_SIZE_INITIAL // ZOOM
         PADDING = 10
         WINDOW_SIZE = CANVAS_SIZE + PADDING * 2

@@ -129,7 +129,7 @@ if __name__ == '__main__':
     # engraver.move_to(0, 0)
     # engraver.move_to(370*20, 370*20)
 
-    canvas = Canvas(Shape._drawRect(0, 0, 10, 10))
+    canvas = Canvas(Shape._drawRect(0, 0, 100, 100))
     # canvas = Canvas(Shape._drawEdge(Point(0, 0), Point(200, 100)))
     engraver.engrave(1, canvas)
     

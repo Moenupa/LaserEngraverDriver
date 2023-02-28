@@ -7,6 +7,8 @@ from itertools import chain
 
 from config import Config
 
+import os
+
 class MODEL_ID(IntEnum):
     JL3 = 36
 class MODEL_META():
@@ -133,11 +135,19 @@ class Connection():
         if self.config.dry_run:
             return
 
-        self.ser = serial.Serial(
-            port='COM7', baudrate=115200, xonxoff=True,
-            timeout=3.0, write_timeout=2.0,
-            stopbits=serial.STOPBITS_ONE
-        )
+        if 'nt' in os.name:
+            self.ser = serial.Serial(
+                port='COM7', baudrate=115200, xonxoff=True,
+                timeout=3.0, write_timeout=2.0,
+                stopbits=serial.STOPBITS_ONE
+            )
+        else:
+            self.ser = serial.Serial(
+                port='/dev/ttyUSB0', baudrate=115200, xonxoff=True,
+                timeout=3.0, write_timeout=2.0,
+                stopbits=serial.STOPBITS_ONE
+            )
+
         self.timestep = 0.01
         logging.info(
             f'Connected to {self.ser.name} at port{self.ser.port}')
