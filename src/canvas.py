@@ -1,5 +1,6 @@
 from itertools import chain
 import pygame
+import math
 
 class Point():
     def __init__(self, x: int, y: int):
@@ -60,12 +61,12 @@ class Shape():
     @staticmethod
     def _drawCircle(x0, y0, r) -> list[Point]:
         points = []
-        for x in range(x0 - r, x0 + r):
-            y = round(y0 + (r ** 2 - (x - x0) ** 2) ** 0.5)
-            points.append(Point(x, y))
-        for x in range(x0 + r, x0 - r, -1):
-            y = round(y0 - (r ** 2 - (x - x0) ** 2) ** 0.5)
-            points.append(Point(x, y))
+        theta = 0
+        while theta < 2 * math.pi:
+            x, y = round(x0 + r * math.cos(theta)), round(y0 + r * math.sin(theta))
+            if len(points) == 0 or (x != points[-1].x or y != points[-1].y):
+                points.append(Point(x, y))
+            theta += 0.01 / r
         return points
 
     @staticmethod
@@ -104,7 +105,12 @@ class Canvas():
         return Shape._toFlatList(self.points)
 
     def preview(self) -> bool:
-        CANVAS_SIZE = 370 * 2
+        CROP_REGION = 20
+        DEFAULT_SIZE = 370
+        CANVAS_SIZE_INITIAL = min(CROP_REGION, DEFAULT_SIZE) * 20
+        
+        ZOOM = 1
+        CANVAS_SIZE = CANVAS_SIZE_INITIAL // ZOOM
         PADDING = 10
         WINDOW_SIZE = CANVAS_SIZE + PADDING * 2
         
@@ -135,10 +141,11 @@ class Canvas():
             
             drawGrid(window, GRAY)
             for point in self.points:
-                window.set_at((point.x // 10 + PADDING, point.y // 10 + PADDING), WHITE)
+                window.set_at((point.x // ZOOM + PADDING, point.y // ZOOM + PADDING), WHITE)
             
             pygame.display.flip()
 
+        print(len(self.points))
         pygame.quit()
         return engrave
 
