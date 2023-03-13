@@ -229,8 +229,7 @@ class Connection():
         if (self.ser.in_waiting > 0):
             logging.error(
                 f'[{self.ser.port}] -> (timeout {timeout}s insufficient)'
-                f'port still has {self.ser.in_waiting} bytes'
-            )
+                f'port still has {self.ser.in_waiting} bytes')
 
         return level < logging.ERROR
 
