@@ -2,7 +2,7 @@ from itertools import chain
 import pygame
 import math
 
-class Point():
+class Pixel():
     def __init__(self, x: int, y: int):
         self.x = x
         self.y = y
@@ -13,7 +13,7 @@ class Point():
 
 class Shape():
     @staticmethod
-    def _drawEdge(src: Point, dest: Point) -> list[Point]:
+    def _drawEdge(src: Pixel, dest: Pixel) -> list[Pixel]:
         deltas = (dest.x - src.x, dest.y - src.y)
         if deltas[0] == 0 and deltas[1] == 0:
             return [src]
@@ -28,30 +28,30 @@ class Shape():
         points = []
         slope = deltas[1] / deltas[0]
         for xid in range(0, deltas[0], 1 if deltas[0] > 0 else -1):
-            points.append(Point(src.x + xid, round(xid * slope + src.y)))
+            points.append(Pixel(src.x + xid, round(xid * slope + src.y)))
         return points
     
     @staticmethod
-    def _drawVerticalLine(x: int, y0: int, dy: int) -> list[Point]:
+    def _drawVerticalLine(x: int, y0: int, dy: int) -> list[Pixel]:
         points = []
         for yid in range(0, dy, 1 if dy > 0 else -1):
-            points.append(Point(x, y0 + yid))
+            points.append(Pixel(x, y0 + yid))
         return points
     
     @staticmethod
-    def _drawHorizontalLine(x0: int, y: int, dx: int) -> list[Point]:
+    def _drawHorizontalLine(x0: int, y: int, dx: int) -> list[Pixel]:
         points = []
         for xid in range(0, dx, 1 if dx > 0 else -1):
-            points.append(Point(x0 + xid, y))
+            points.append(Pixel(x0 + xid, y))
         return points
     
     @staticmethod
-    def _drawRect(x0, y0, w, h) -> list[Point]:
+    def _drawRect(x0, y0, w, h) -> list[Pixel]:
         points = []
-        p1 = Point(x0, y0)
-        p2 = Point(x0 + w, y0)
-        p3 = Point(x0 + w, y0 + h)
-        p4 = Point(x0, y0 + h)
+        p1 = Pixel(x0, y0)
+        p2 = Pixel(x0 + w, y0)
+        p3 = Pixel(x0 + w, y0 + h)
+        p4 = Pixel(x0, y0 + h)
         points += Shape._drawEdge(p1, p2)
         points += Shape._drawEdge(p2, p3)
         points += Shape._drawEdge(p3, p4)
@@ -59,26 +59,26 @@ class Shape():
         return points
 
     @staticmethod
-    def _drawCircle(x0, y0, r) -> list[Point]:
+    def _drawCircle(x0, y0, r) -> list[Pixel]:
         points = []
         theta = 0
         while theta < 2 * math.pi:
             x, y = round(x0 + r * math.cos(theta)), round(y0 + r * math.sin(theta))
             if len(points) == 0 or (x != points[-1].x or y != points[-1].y):
-                points.append(Point(x, y))
+                points.append(Pixel(x, y))
             theta += 0.01 / r
         return points
 
     @staticmethod
-    def _toString(points: list[Point]) -> str:
+    def _toString(points: list[Pixel]) -> str:
         return ", ".join(str(p) for p in points)
     
     @staticmethod
-    def _toFlatList(points: list[Point]) -> list[int]:
+    def _toFlatList(points: list[Pixel]) -> list[int]:
         return list(chain.from_iterable([p.__coords__() for p in points]))
 
     @staticmethod
-    def _getBoundingBox(points: list[Point]):
+    def _getBoundingBox(points: list[Pixel]):
         if len(points) == 0:
             return (0, 0, 0, 0)
         x0, y0 = points[0].x, points[0].y
@@ -90,7 +90,7 @@ class Shape():
 
 class Canvas():
     def __init__(self, points = []) -> None:
-        self.points : list[Point] = points
+        self.points : list[Pixel] = points
 
     def __len__(self) -> None:
         return self.points.__len__()
@@ -98,7 +98,7 @@ class Canvas():
     def __str__(self) -> str:
         return Shape._toString(self.points)
 
-    def add(self, points: list[Point]):
+    def add(self, points: list[Pixel]):
         self.points += points
 
     def toList(self) -> list[int]:

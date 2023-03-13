@@ -1,6 +1,6 @@
 {
     "files.autoSave": "afterDelay",
-    "editor.fontFamily": "'Fira Code'",
+    "editor.fontFamily": "'Fira Code', Sarasa Mono TC, Firacode NF, monospace",
     "editor.fontLigatures": true,
     "material-icon-theme.hidesExplorerArrows": true
 }

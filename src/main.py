@@ -1,5 +1,5 @@
 from engraver import Engraver
-from canvas import Canvas, Shape, Point
+from canvas import Canvas, Shape, Pixel
 
 if __name__ == '__main__':
     engraver = Engraver()

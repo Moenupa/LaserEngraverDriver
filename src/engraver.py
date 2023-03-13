@@ -2,7 +2,7 @@ import logging
 from math import ceil
 
 from connection import Connection, OPCode, ByteList
-from canvas import Point, Canvas, Shape
+from canvas import Pixel, Canvas, Shape
 
 class MetaData():
     def __init__(self, hint: str, w: int, h: int, power: int = 1000, depth: int = 10) -> None:
@@ -22,7 +22,7 @@ class MetaData():
 
     def _parse_from(name: str, canvas: Canvas) -> 'MetaData':
         x0, y0, x1, y1 = Shape._getBoundingBox(canvas.points)
-        center = Point((x0 + x1) // 2, (y0 + y1) // 2)
+        center = Pixel((x0 + x1) // 2, (y0 + y1) // 2)
         meta_data = MetaData(name, x1-x0, y1-y0)
         return center, meta_data
     
@@ -73,7 +73,7 @@ class Engraver(Connection):
         logging.info('')
         self.sendWithACK(Connection._packet(OPCode.HEARTBEAT))
     
-    def engrave_metadata(self, carve: MetaData, cut: MetaData, nCutPoints: int, center: Point, repeats: int = 1, version: int = 1) -> None:
+    def engrave_metadata(self, carve: MetaData, cut: MetaData, nCutPoints: int, center: Pixel, repeats: int = 1, version: int = 1) -> None:
         logging.info('')
         CHUNK_LENGTH = [33, carve.w * ceil(carve.h / 8.0), nCutPoints * 4]
         CHUNK_BEGINS_AT = [int(sum(CHUNK_LENGTH[:i])) for i in range(len(CHUNK_LENGTH))]
