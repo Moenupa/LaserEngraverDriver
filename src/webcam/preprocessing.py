@@ -6,6 +6,7 @@ from src.config import Config
 
 PATTERNS_PATH = os.path.join('res', 'patterns')
 
+
 def preprocessing(path: str, offset: tuple, size: tuple):
     os.makedirs(PATTERNS_PATH, exist_ok=True)
     img = cv2.imread(path)
@@ -14,7 +15,7 @@ def preprocessing(path: str, offset: tuple, size: tuple):
     _, binary = cv2.threshold(cropped, 60, 255, cv2.THRESH_BINARY)
     blurred = cv2.GaussianBlur(binary, (3, 3), 0)
     Display.display(PREPROCESSING_CALLBACK, img, cropped, binary, blurred)
-    
+
 
 if __name__ == '__main__':
     config = Config(stdout=True)
