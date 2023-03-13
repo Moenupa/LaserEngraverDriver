@@ -1,4 +1,5 @@
 import cv2
+import numpy as np
 
 class Filters():
     @staticmethod
@@ -19,6 +20,20 @@ class Filters():
     @staticmethod
     def invert(frame):        
         return cv2.bitwise_not(frame)
+    
+    @staticmethod
+    def drawContours(frame):
+        ret = cv2.copyTo(frame)
+        contours, _ = cv2.findContours(frame, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+        
+        if len(contours) != 0:
+            cv2.drawContours(ret, contours, -1, 255, 2)
+            largest = max(contours, key = cv2.contourArea)
+            x, y, w, h = cv2.boundingRect(largest)
+            cv2.rectangle(ret, (x, y), (x + w, y + h), (0, 255, 0), 2)
+        # approx = cv2.approxPolyDP()
+        
+        return ret
     
     @staticmethod
     def filter(frame, params = None):

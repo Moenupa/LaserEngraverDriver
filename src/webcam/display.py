@@ -4,21 +4,21 @@ import logging
 import numpy as np
 from typing import Callable
 from filters import Filters
-from src.config import Config, random_str
-import matplotlib.pyplot as plt
+from src.config import Config
+
+config = Config(stdout=False)
 
 ESC = 27
 RESOURCE_PATH = 'res'
 CAPTURE_PATH = os.path.join(RESOURCE_PATH, 'captures')
 PATTERNS_PATH = os.path.join(RESOURCE_PATH, 'patterns')
-LOGGING_PATH = os.path.join('log', 'img', random_str())
-
 PATTERN_IMG = os.path.join(RESOURCE_PATH, 'template0.png')
 
-def save(path: str, id: str | int, img: cv2.Mat, ext: str = 'png'):
-    os.makedirs(path, exist_ok=True)
-    logging.info(f'saving to {path}/{id}.{ext}')
-    cv2.imwrite(f'{path}/{id}.{ext}', img)
+def save(dir: str, id: str | int, img: cv2.Mat, ext: str = 'png'):
+    os.makedirs(dir, exist_ok=True)
+    abspath = os.path.abspath(os.path.join(dir, f'{id}.{ext}'))
+    logging.info(f'saving to {abspath}')
+    cv2.imwrite(f'{abspath}', img)
 
 PREPROCESSING_CALLBACK = {
     ord('p'): lambda id, img: save(PATTERNS_PATH, id, img),
@@ -30,8 +30,13 @@ SAVE_CALLBACK = {
     ord('s'): lambda id, img: save(RESOURCE_PATH, id, img),
 }
 LOGGING_CALLBACK = {
-    ord('l'): lambda id, img: save(LOGGING_PATH, id, img)
+    # ord('l'): lambda id, img: save(config.log_dir, id, img)
+    ord('l'): lambda id, img: config.save(save, id, img)
 }
+
+RED = (0, 0, 255)
+BLACK = (0, 0, 0)
+WHITE = (255, 255, 255)
 
 class Display():
     @staticmethod
@@ -57,7 +62,7 @@ class Display():
         cv2.destroyAllWindows()
         
     @staticmethod
-    def video_display(apply_filters: Callable, _callback: dict = LOGGING_CALLBACK, descriptor: int = 4):
+    def video_display(apply_filters: Callable, _callback: dict = LOGGING_CALLBACK, descriptor: int = 0):
         cap = cv2.VideoCapture(descriptor)
         while True:
             _, frame = cap.read()
@@ -88,28 +93,28 @@ def get_plane(x : tuple, y: tuple):
     return np.array([[x1, y1], [x2, y2], [x3, y2], [x4, y1]], dtype='float32')
 
 if __name__ == '__main__':
-    config = Config(stdout=False)
-    
     pattern = cv2.imread(PATTERN_IMG, cv2.CV_8U)
     w, h = pattern.shape[::-1]
+   
+    dest_size = (400, 400)
+    src_plane = get_plane((374, 349, 483, 471), (336, 396))
+    dest_plane = get_plane((0, dest_size[0]), (0, dest_size[1]))
+    tx_forwards = cv2.getPerspectiveTransform(src_plane, dest_plane)
+    tx_backwards = cv2.getPerspectiveTransform(dest_plane, src_plane)
     
     def apply_filters(frame):
         yield 'original', frame
-        dest_xy = (400, 400)
-        src_plane = get_plane((374, 349, 483, 471), (336, 396))
-        dest_plane = get_plane((0, dest_xy[0]), (0, dest_xy[1]))
-        tx = cv2.getPerspectiveTransform(src_plane, dest_plane)
-        img_warpped = cv2.warpPerspective(frame, tx, dest_xy)
-        # img_warpped = cv2.perspectiveTransform(frame, tx)
+        img_warpped = cv2.warpPerspective(frame, tx_forwards, dest_size)
         yield 'warpped', img_warpped
         img_gray = Filters.gray(img_warpped)
         img_gray = Filters.scale(img_gray, 5, -255 * 4)
         yield 'gray', img_gray
         img_bin = Filters.binary(img_gray, 180)
+        
         yield 'black and white', img_bin
         matched = cv2.matchTemplate(img_bin, pattern, cv2.TM_CCOEFF_NORMED)
         loc = np.where(matched >= 0.8)
         for pt in zip(*loc[::-1]):
-            cv2.rectangle(img_warpped, pt, (pt[0] + w, pt[1] + h), (0,0,255), 2)
+            cv2.rectangle(img_warpped, pt, (pt[0] + w, pt[1] + h), RED, 1)
     
     Display.video_display(apply_filters)

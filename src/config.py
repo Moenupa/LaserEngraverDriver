@@ -4,6 +4,7 @@ import os
 from datetime import date
 import random
 import string
+from typing import Callable
 
 CHAR_POOL = string.ascii_lowercase + string.digits
 
@@ -67,4 +68,7 @@ class Config():
     
     def reset(self, stdout: bool, dry_run: bool) -> None:
         self.__set(stdout, dry_run, 'reset complete')
+        
+    def save(self, fn: Callable, *args, **kwargs) -> None:
+        fn(self.log_dir, *args, **kwargs)
         

@@ -70,7 +70,7 @@ class PatternDetection():
             width = max([0] + [cv2.boundingRect(c)[2] for c in contours])
             height = max([0] + [cv2.boundingRect(c)[3] for c in contours])
             num = sum(1 for c in contours if cv2.boundingRect(c)[2] > 0 and cv2.boundingRect(c)[3] > 0)
-            cv2.drawContours(frame, contours, -1, (0,0,255), 3)
+            cv2.drawContours(frame, contours, -1, (0, 0, 255), 3)
             cv2.putText(frame, f'w={width}, h={height}, num={num}', (0, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0))
 
             # cv2.imshow('edges', img_filter)
