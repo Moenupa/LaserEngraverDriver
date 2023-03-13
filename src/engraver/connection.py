@@ -1,3 +1,4 @@
+import os
 import serial
 import logging
 import time
@@ -5,9 +6,7 @@ import time
 from enum import IntEnum
 from itertools import chain
 
-from config import Config
-
-import os
+from src.config import Config
 
 class MODEL_ID(IntEnum):
     JL3 = 36
@@ -91,7 +90,7 @@ class Connection():
             return (0, f"unknown_{data[0]}")
 
     @staticmethod
-    def _checksum(data) -> bytes:
+    def _checksum(data: list) -> bytes:
         s = sum(data)
         if (s > 0xff):
             s = ~s + 1
@@ -129,13 +128,10 @@ class Connection():
         for i in range(0, len(_list), n):
             yield _list[i : i+n]
 
-    def __init__(self) -> None:
-        self.config = Config(stdout=False)
+    def __init__(self, stdout: bool, dry_run: bool, verbose: bool = True) -> None:
+        self.config = Config(stdout=stdout, dry_run=dry_run, verbose=verbose)
         if self.config.dry_run:
-            logging.info(f'logging initialized\n{"-"*35 + "MOCK START" + "-"*35}')
             return
-        else:
-            logging.info(f'logging initialized\n{"-"*35 + "LOG  START" + "-"*35}')
 
         if 'nt' in os.name:
             self.ser = serial.Serial(
@@ -239,7 +235,7 @@ class Connection():
         return ret
 
     def close(self) -> None:
-        logging.info(f'closing serial port\n{"-"*35 + "END OF LOG" + "-"*35}')
+        logging.info(f'closing serial port')
 
         if self.config.dry_run:
             return

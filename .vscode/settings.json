@@ -1,6 +1,14 @@
 {
-    "files.autoSave": "afterDelay",
-    "editor.fontFamily": "'Fira Code', Sarasa Mono TC, Firacode NF, monospace",
-    "editor.fontLigatures": true,
-    "material-icon-theme.hidesExplorerArrows": true
+  "terminal.integrated.env.osx": {
+    "PYTHONPATH": "${workspaceFolder}",
+    "PYGAME_HIDE_SUPPORT_PROMPT": "hide"
+  },
+  "terminal.integrated.env.windows": {
+    "PYTHONPATH": "${workspaceFolder}",
+    "PYGAME_HIDE_SUPPORT_PROMPT": "hide"
+  },
+  "files.autoSave": "afterDelay",
+  "editor.fontFamily": "'Fira Code', Sarasa Mono TC, Firacode NF, monospace",
+  "editor.fontLigatures": true,
+  "material-icon-theme.hidesExplorerArrows": true
 }
