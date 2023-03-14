@@ -147,12 +147,6 @@ class Board():
         r = round(circle.radius / self.resolution)
         draw.ellipse((x0 - r, y0 - r, x0 + r, y0 + r), outline=Board.FILLED)
         return
-        theta = 0
-        while theta < 2 * math.pi:
-            x, y = round(x0 + r * math.cos(theta)), round(y0 +
-                                                          r * math.sin(theta))
-            self.image.putpixel((x, y), Board.FILLED)
-            theta += 0.005 / r
 
     def preview(self) -> None:
         self.image = Image.new('1', self.size(), Board.EMPTY)

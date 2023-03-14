@@ -7,6 +7,10 @@
     "PYTHONPATH": "${workspaceFolder}",
     "PYGAME_HIDE_SUPPORT_PROMPT": "hide"
   },
+  "terminal.integrated.env.linux": {
+    "PYTHONPATH": "${workspaceFolder}",
+    "PYGAME_HIDE_SUPPORT_PROMPT": "hide"
+  },
   "files.autoSave": "afterDelay",
   "editor.fontFamily": "'Fira Code', Sarasa Mono TC, Firacode NF, monospace",
   "editor.fontLigatures": true,

@@ -1,9 +1,13 @@
 import logging
 from math import ceil
 
-from connection import Connection, OPCode, ByteList
-from canvas import Pixel, Canvas, Shape
+from .connection import Connection, OPCode, ByteList
+from .canvas import Pixel, Canvas, Shape
 
+__all__ = [
+    'MetaData',
+    'Engraver',
+]
 
 class MetaData():
 

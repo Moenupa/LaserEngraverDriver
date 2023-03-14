@@ -8,6 +8,12 @@ from itertools import chain
 
 from src.config import Config
 
+__all__ = [
+    'OPCode',
+    'ACKCode',
+    'ByteList',
+    'Connection'
+]
 
 class MODEL_ID(IntEnum):
     JL3 = 36
@@ -143,23 +149,25 @@ class Connection():
                  dry_run: bool,
                  verbose: bool = True) -> None:
         self.config = Config(stdout=stdout, dry_run=dry_run, verbose=verbose)
+        self.ser = None
         if self.config.dry_run:
             return
-
+        
         if 'nt' in os.name:
-            self.ser = serial.Serial(port='COM7',
-                                     baudrate=115200,
-                                     xonxoff=True,
-                                     timeout=3.0,
-                                     write_timeout=2.0,
-                                     stopbits=serial.STOPBITS_ONE)
+            self.port = 'COM7'
         else:
-            self.ser = serial.Serial(port='/dev/ttyUSB0',
-                                     baudrate=115200,
-                                     xonxoff=True,
-                                     timeout=3.0,
-                                     write_timeout=2.0,
-                                     stopbits=serial.STOPBITS_ONE)
+            self.port = '/dev/ttyUSB0'
+
+        try:
+            self.ser = serial.Serial(port=self.port,
+                                    baudrate=115200,
+                                    xonxoff=True,
+                                    timeout=3.0,
+                                    write_timeout=2.0,
+                                    stopbits=serial.STOPBITS_ONE)
+        except Exception as e:
+            logging.error(f'Port connection error\n{e}')
+            return
 
         self.timestep = 0.01
         logging.info(f'Connected to {self.ser.name} at port{self.ser.port}')
@@ -168,6 +176,10 @@ class Connection():
     def open(self) -> bool:
         if self.config.dry_run:
             return True
+        
+        if self.ser is None:
+            logging.error(f'serial port is not initialized')
+            return False
 
         if not self.ser.is_open:
             self.ser.open()
@@ -181,7 +193,7 @@ class Connection():
 
         if not self.open():
             logging.log(logging.CRITICAL,
-                        f'[{self.ser.port} NOT OPENED] -> 0x{data.hex()}')
+                        f'[{self.port} NOT OPENED] -> 0x{data.hex()}')
             return
         len_sent, len_expected = 0, len(data)
         start = time.time()
@@ -206,7 +218,7 @@ class Connection():
 
         if not self.open():
             logging.log(logging.CRITICAL,
-                        f'[{self.ser.port} NOT OPENED] <- ERROR')
+                        f'[{self.port} NOT OPENED] <- ERROR')
             return
         start = time.time()
         level = logging.INFO
@@ -262,4 +274,9 @@ class Connection():
 
         if self.config.dry_run:
             return
+        
+        if self.ser is None:
+            logging.error(f'serial port is not initialized')
+            return
+        
         self.ser.close()
