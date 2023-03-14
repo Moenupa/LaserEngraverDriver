@@ -1,5 +1,7 @@
 from PIL import Image, ImageDraw
 import math
+import numpy as np
+import matplotlib.pyplot as plt
 
 
 class Point():
@@ -148,18 +150,49 @@ class Board():
         draw.ellipse((x0 - r, y0 - r, x0 + r, y0 + r), outline=Board.FILLED)
         return
 
-    def preview(self) -> None:
+    def preview(self, show: bool = True) -> None:
         self.image = Image.new('1', self.size(), Board.EMPTY)
         for element in self.elements:
             self.draw(element)
-        print(f'size: {self.image.size}')
-        print(sum(list(self.image.getdata())))
-        self.image.show()
+        if show:
+            self.image.show()
+        
+    def get_engrave_points(self) -> list:
+        self.preview(show = False)
+        pixels = np.array(self.image)
+        coords = np.column_stack(np.where(pixels != Board.EMPTY))
+        return Board._order_points(coords.tolist())
+    
+    @staticmethod
+    def _order_points(points: list, ind: int = 0):
+        # ref: https://stackoverflow.com/questions/37742358/sorting-points-to-form-a-continuous-line
+        points_new = [ points.pop(ind) ]
+        pcurr      = points_new[-1]
+        while len(points)>0:
+            d      = np.linalg.norm(np.array(points) - np.array(pcurr), axis=1)
+            ind    = d.argmin()
+            points_new.append( points.pop(ind) )
+            pcurr  = points_new[-1]
+        return points_new
 
+    @staticmethod
+    def _animate_pixels(width: int, height: int, points: list, precision: int = 5) -> None:
+        plt.gca().set_aspect('equal')
+        plt.ylim(-100, height + 100)
+        plt.xlim(-100, width + 100)
+        for x, y in points:
+            if x % precision == 0 and y % precision == 0:
+                plt.plot(x, y, 'go', markersize=1)
+                plt.pause(0.0001)
+        plt.show()
 
 if __name__ == '__main__':
     board = Board()
-    # board.addElement(Line(Point(0, 0), Point(10, 10)))
-    # board.addElement(Rectangle(Point(100, 100), 10, 10))
-    board.addElement(Circle(Point(200, 200), 100))
-    board.preview()
+    board.addElement(Line(Point(0, 0), Point(10, 10)))
+    board.addElement(Circle(Point(20, 20), 10))
+    board.addElement(Rectangle(Point(10, 10), 20, 20))
+    coords = board.get_engrave_points()
+    print('coords length', len(coords))
+    Board._animate_pixels(*board.size(), coords)
+    
+    exit(0)
