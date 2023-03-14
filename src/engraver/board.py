@@ -156,27 +156,30 @@ class Board():
             self.draw(element)
         if show:
             self.image.show()
-        
+
     def get_engrave_points(self) -> list:
-        self.preview(show = False)
+        self.preview(show=False)
         pixels = np.array(self.image)
         coords = np.column_stack(np.where(pixels != Board.EMPTY))
         return Board._order_points(coords.tolist())
-    
+
     @staticmethod
     def _order_points(points: list, ind: int = 0):
         # ref: https://stackoverflow.com/questions/37742358/sorting-points-to-form-a-continuous-line
-        points_new = [ points.pop(ind) ]
-        pcurr      = points_new[-1]
-        while len(points)>0:
-            d      = np.linalg.norm(np.array(points) - np.array(pcurr), axis=1)
-            ind    = d.argmin()
-            points_new.append( points.pop(ind) )
-            pcurr  = points_new[-1]
+        points_new = [points.pop(ind)]
+        pcurr = points_new[-1]
+        while len(points) > 0:
+            d = np.linalg.norm(np.array(points) - np.array(pcurr), axis=1)
+            ind = d.argmin()
+            points_new.append(points.pop(ind))
+            pcurr = points_new[-1]
         return points_new
 
     @staticmethod
-    def _animate_pixels(width: int, height: int, points: list, precision: int = 5) -> None:
+    def _animate_pixels(width: int,
+                        height: int,
+                        points: list,
+                        precision: int = 5) -> None:
         plt.gca().set_aspect('equal')
         plt.ylim(-100, height + 100)
         plt.xlim(-100, width + 100)
@@ -186,6 +189,7 @@ class Board():
                 plt.pause(0.0001)
         plt.show()
 
+
 if __name__ == '__main__':
     board = Board()
     board.addElement(Line(Point(0, 0), Point(10, 10)))
@@ -194,5 +198,5 @@ if __name__ == '__main__':
     coords = board.get_engrave_points()
     print('coords length', len(coords))
     Board._animate_pixels(*board.size(), coords)
-    
+
     exit(0)
