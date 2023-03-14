@@ -8,12 +8,8 @@ from itertools import chain
 
 from src.config import Config
 
-__all__ = [
-    'OPCode',
-    'ACKCode',
-    'ByteList',
-    'Connection'
-]
+__all__ = ['OPCode', 'ACKCode', 'ByteList', 'Connection']
+
 
 class MODEL_ID(IntEnum):
     JL3 = 36
@@ -152,7 +148,7 @@ class Connection():
         self.ser = None
         if self.config.dry_run:
             return
-        
+
         if 'nt' in os.name:
             self.port = 'COM7'
         else:
@@ -160,11 +156,11 @@ class Connection():
 
         try:
             self.ser = serial.Serial(port=self.port,
-                                    baudrate=115200,
-                                    xonxoff=True,
-                                    timeout=3.0,
-                                    write_timeout=2.0,
-                                    stopbits=serial.STOPBITS_ONE)
+                                     baudrate=115200,
+                                     xonxoff=True,
+                                     timeout=3.0,
+                                     write_timeout=2.0,
+                                     stopbits=serial.STOPBITS_ONE)
         except Exception as e:
             logging.error(f'Port connection error\n{e}')
             return
@@ -176,7 +172,7 @@ class Connection():
     def open(self) -> bool:
         if self.config.dry_run:
             return True
-        
+
         if self.ser is None:
             logging.error(f'serial port is not initialized')
             return False
@@ -217,8 +213,7 @@ class Connection():
             return True
 
         if not self.open():
-            logging.log(logging.CRITICAL,
-                        f'[{self.port} NOT OPENED] <- ERROR')
+            logging.log(logging.CRITICAL, f'[{self.port} NOT OPENED] <- ERROR')
             return
         start = time.time()
         level = logging.INFO
@@ -274,9 +269,9 @@ class Connection():
 
         if self.config.dry_run:
             return
-        
+
         if self.ser is None:
             logging.error(f'serial port is not initialized')
             return
-        
+
         self.ser.close()

@@ -8,8 +8,8 @@ if __name__ == '__main__':
     # engraver.preview(100, 400, 0, 0)
     # engraver.preview_stop()
     # engraver.move_to(200, 200)
-    
+
     canvas = Canvas(Shape._drawRect(0, 0, 100, 400))
     engraver.engrave(1, canvas)
-    
+
     engraver.close()
