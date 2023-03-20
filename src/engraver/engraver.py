@@ -2,7 +2,7 @@ import logging
 from math import ceil
 
 from connection import Connection, OPCode, ByteList, flatten
-from canvas import *
+from board import *
 
 
 class MetaData():
@@ -29,7 +29,7 @@ class MetaData():
         ret += ByteList._double_bytes_arr([self.power, self.depth])
         return ret
 
-    def _parse_from(name: str, canvas: Canvas) -> tuple:
+    def _parse_from(name: str, canvas: Board) -> tuple:
         x0, y0, x1, y1 = canvas.get_bounding_box()
         center = ((x0 + x1) // 2, (y0 + y1) // 2)
         meta_data = MetaData(name, x1 - x0, y1 - y0)
@@ -112,7 +112,7 @@ class Engraver(Connection):
 
     def engrave(self,
                 repeats: int,
-                cut: Canvas,
+                cut: Board,
                 carve: MetaData = MetaData('carve', 0, 0),
                 carvePoints=[],
                 omit_confirmation=True) -> None:
@@ -155,12 +155,11 @@ if __name__ == '__main__':
     # engraver.move_to(0, 0)
     # engraver.move_to(10*20, 10*20)
 
-    canvas = Canvas(Shape._drawRect(0, 0, 100, 100))
-    canvas = Canvas()
+    # canvas = Canvas(Shape._drawEdge(Pixel(0, 0), Pixel(200, 0)))
+    board = Board()
     # canvas.addElement(Line(Point(0, 0), Point(0, 10)))
     # canvas.addElement(Circle(Point(20, 20), 10))
-    # canvas.addElement(Rectangle(Point(10, 10), 20, 20))
-    # canvas = Canvas(Shape._drawEdge(Point(0, 0), Point(200, 100)))
-    engraver.engrave(1, canvas)
+    board.addElement(Rectangle(Point(10, 10), 20, 20))
+    engraver.engrave(1, board)
 
     engraver.close()

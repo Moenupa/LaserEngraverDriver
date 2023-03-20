@@ -1,4 +1,4 @@
-from engraver import Engraver, Canvas, Shape, Pixel
+from engraver import Engraver, Board, Shape, Pixel
 from time import sleep
 
 if __name__ == '__main__':
@@ -9,7 +9,7 @@ if __name__ == '__main__':
     # engraver.preview_stop()
     # engraver.move_to(200, 200)
 
-    canvas = Canvas(Shape._drawRect(0, 0, 100, 400))
+    canvas = Board(Shape._drawRect(0, 0, 100, 400))
     engraver.engrave(1, canvas)
 
     engraver.close()

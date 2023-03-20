@@ -60,7 +60,7 @@ class Circle(Shape):
         self.radius = radius
 
 
-class Canvas():
+class Board():
     EMPTY = 0
     FILLED = 1
 
@@ -79,7 +79,7 @@ class Canvas():
         self.height = height
         self.resolution = resolution
         self.elements: list[Element] = []
-        self.image = Image.new('1', self.size(), Canvas.EMPTY)
+        self.image = Image.new('1', self.size(), Board.EMPTY)
 
     def size(self) -> tuple[int, int]:
         return (int(self.width / self.resolution),
@@ -110,7 +110,7 @@ class Canvas():
         x_dest, y_dest = self.pixel(line.dest)
         dx, dy = x_dest - x_src, y_dest - y_src
         if dx == 0 and dy == 0:
-            return
+            raise ConnectionAbortedError
         elif dx == 0:
             # xDiff is 0, the line is `|`,
             self.drawVerticalLine(x_src, y_src, dy)
@@ -121,15 +121,15 @@ class Canvas():
             slope = dy / dx
             for xid in range(0, dx, 1 if dx > 0 else -1):
                 self.image.putpixel((x_src + xid, round(xid * slope + x_src)),
-                                    Canvas.FILLED)
+                                    Board.FILLED)
 
     def drawVerticalLine(self, x: int, y: int, length: int) -> None:
         for i in range(0, length, 1 if length > 0 else -1):
-            self.image.putpixel((x, y + i), Canvas.FILLED)
+            self.image.putpixel((x, y + i), Board.FILLED)
 
     def drawHorizontalLine(self, x: int, y: int, length: int) -> None:
         for i in range(0, length, 1 if length > 0 else -1):
-            self.image.putpixel((x + i, y), Canvas.FILLED)
+            self.image.putpixel((x + i, y), Board.FILLED)
 
     def drawRect(self, rect: Rectangle) -> None:
         x0, y0 = self.pixel(
@@ -147,13 +147,16 @@ class Canvas():
         draw = ImageDraw.Draw(self.image)
         x0, y0 = self.pixel(circle.center)
         r = round(circle.radius / self.resolution)
-        draw.ellipse((x0 - r, y0 - r, x0 + r, y0 + r), outline=Canvas.FILLED)
+        draw.ellipse((x0 - r, y0 - r, x0 + r, y0 + r), outline=Board.FILLED)
         return
 
-    def preview(self, show: bool = True, prompt: bool = True) -> bool:
-        self.image = Image.new('1', self.size(), Canvas.EMPTY)
+    def update(self) -> bool:
+        self.image = Image.new('1', self.size(), Board.EMPTY)
         for element in self.elements:
             self.draw(element)
+
+    def preview(self, show: bool = True, prompt: bool = True) -> bool:
+        self.update()
         if show:
             self.image.show()
         if prompt:
@@ -162,9 +165,9 @@ class Canvas():
 
     def get_engrave_points(self) -> list:
         pixels = np.array(self.image)
-        coords = np.column_stack(np.where(pixels != Canvas.EMPTY))
-        return Canvas._order_points(coords.tolist())
-
+        coords = np.column_stack(np.where(pixels != Board.EMPTY))
+        return Board._order_points(coords.tolist())
+    
     def get_bounding_box(self) -> list:
         bbox = self.image.getbbox()
         return bbox if bbox else [0, 0, 0, 0]
@@ -200,10 +203,12 @@ class Canvas():
 
 
 if __name__ == '__main__':
-    canvas = Canvas()
-    canvas.addElement(Line(Point(0, 0), Point(10, 10)))
-    canvas.addElement(Circle(Point(20, 20), 10))
-    canvas.addElement(Rectangle(Point(10, 10), 20, 20))
-    coords = canvas.get_engrave_points()
-    Canvas._animate_pixels(*canvas.size(), coords)
+    board = Board()
+    board.addElement(Line(Point(0, 0), Point(10, 10)))
+    board.addElement(Circle(Point(20, 20), 10))
+    board.addElement(Rectangle(Point(10, 10), 20, 20))
+    board.preview()
+    coords = board.get_engrave_points()
+    # Board._animate_pixels(*board.size(), coords)
+    print(coords)
     exit(0)

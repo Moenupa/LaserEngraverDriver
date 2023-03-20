@@ -16,7 +16,7 @@ class Pixel():
         return f'({self.x}, {self.y})'
 
 
-class Shape():
+class CanvasHelper():
 
     @staticmethod
     def _drawEdge(src: Pixel, dest: Pixel) -> list[Pixel]:
@@ -25,10 +25,10 @@ class Shape():
             return [src]
         elif deltas[0] == 0:
             # xDiff is 0, the line is `|`,
-            return Shape._drawVerticalLine(src.x, src.y, deltas[1])
+            return CanvasHelper._drawVerticalLine(src.x, src.y, deltas[1])
         elif deltas[1] == 0:
             # yDiff is 0, the line is `-`
-            return Shape._drawHorizontalLine(src.x, src.y, deltas[0])
+            return CanvasHelper._drawHorizontalLine(src.x, src.y, deltas[0])
 
         # else plot a curve
         points = []
@@ -58,10 +58,10 @@ class Shape():
         p2 = Pixel(x0 + w, y0)
         p3 = Pixel(x0 + w, y0 + h)
         p4 = Pixel(x0, y0 + h)
-        points += Shape._drawEdge(p1, p2)
-        points += Shape._drawEdge(p2, p3)
-        points += Shape._drawEdge(p3, p4)
-        points += Shape._drawEdge(p4, p1)
+        points += CanvasHelper._drawEdge(p1, p2)
+        points += CanvasHelper._drawEdge(p2, p3)
+        points += CanvasHelper._drawEdge(p3, p4)
+        points += CanvasHelper._drawEdge(p4, p1)
         return points
 
     @staticmethod
@@ -98,14 +98,16 @@ class Shape():
 
 class Canvas():
 
-    def __init__(self, points=[]) -> None:
-        self.points: list[Pixel] = points
+    def __init__(self, points: list = []) -> None:
+        self.points: list[Pixel] = []
+        for x, y in points:
+            self.points.append(Pixel(x, y))
 
     def __len__(self) -> None:
         return self.points.__len__()
 
     def __str__(self) -> str:
-        return Shape._toString(self.points)
+        return CanvasHelper._toString(self.points)
 
     def add(self, points: list[Pixel]):
         self.points += points
@@ -114,7 +116,10 @@ class Canvas():
         return self.points
 
     def get_bounding_box(self) -> list:
-        return Shape._getBoundingBox(self.points)
+        return CanvasHelper._getBoundingBox(self.points)
+    
+    def toList(self) -> list[int]:
+        return CanvasHelper._toFlatList(self.points)
 
     def preview(self, **kwargs) -> bool:
         CROP_REGION = 999
@@ -161,10 +166,18 @@ class Canvas():
 
             pygame.display.flip()
 
-        print(len(self.points))
+        print("pts count:", len(self.points))
         pygame.quit()
         return engrave
 
 
 if __name__ == "__main__":
-    print(Canvas(Shape._drawCircle(200, 200, 100)).preview())
+    from board import Board, Line, Circle, Rectangle, Point
+    board = Board()
+    board.addElement(Line(Point(0, 0), Point(10, 10)))
+    board.addElement(Circle(Point(20, 20), 10))
+    board.addElement(Rectangle(Point(10, 10), 20, 20))
+    board.update()
+    print('board pt count:', len(board.get_engrave_points()))
+    canvas = Canvas(board.get_engrave_points())
+    print(canvas.preview())
