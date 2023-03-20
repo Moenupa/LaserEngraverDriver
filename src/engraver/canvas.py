@@ -112,7 +112,7 @@ class Canvas():
 
     def get_engrave_points(self) -> list[int]:
         return self.points
-    
+
     def get_bounding_box(self) -> list:
         return Shape._getBoundingBox(self.points)
 

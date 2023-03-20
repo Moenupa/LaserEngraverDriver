@@ -159,13 +159,12 @@ class Canvas():
         if prompt:
             return len(input("Confirm Preview: ")) != 0
         return True
-        
 
     def get_engrave_points(self) -> list:
         pixels = np.array(self.image)
         coords = np.column_stack(np.where(pixels != Canvas.EMPTY))
         return Canvas._order_points(coords.tolist())
-    
+
     def get_bounding_box(self) -> list:
         bbox = self.image.getbbox()
         return bbox if bbox else [0, 0, 0, 0]
@@ -175,7 +174,7 @@ class Canvas():
         # ref: https://stackoverflow.com/questions/37742358/sorting-points-to-form-a-continuous-line
         if not points:
             return points
-        
+
         points_new = [points.pop(ind)]
         pcurr = points_new[-1]
         while len(points) > 0:

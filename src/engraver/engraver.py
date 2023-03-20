@@ -134,7 +134,8 @@ class Engraver(Connection):
 
         logging.info(f'sending metadata')
         cutPoints = cut.get_engrave_points()
-        self.engrave_metadata(carve, cutMetaData, len(cutPoints), center, repeats)
+        self.engrave_metadata(carve, cutMetaData, len(cutPoints), center,
+                              repeats)
         self.hello()
         self.hello()
         data = []
