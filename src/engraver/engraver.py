@@ -1,13 +1,8 @@
 import logging
 from math import ceil
 
-from .connection import Connection, OPCode, ByteList
-from .canvas import Pixel, Canvas, Shape
-
-__all__ = [
-    'MetaData',
-    'Engraver',
-]
+from connection import Connection, OPCode, ByteList, flatten
+from canvas import *
 
 
 class MetaData():
@@ -34,9 +29,9 @@ class MetaData():
         ret += ByteList._double_bytes_arr([self.power, self.depth])
         return ret
 
-    def _parse_from(name: str, canvas: Canvas) -> 'MetaData':
-        x0, y0, x1, y1 = Shape._getBoundingBox(canvas.points)
-        center = Pixel((x0 + x1) // 2, (y0 + y1) // 2)
+    def _parse_from(name: str, canvas: Canvas) -> tuple:
+        x0, y0, x1, y1 = canvas.get_bounding_box()
+        center = ((x0 + x1) // 2, (y0 + y1) // 2)
         meta_data = MetaData(name, x1 - x0, y1 - y0)
         return center, meta_data
 
@@ -90,7 +85,7 @@ class Engraver(Connection):
                          carve: MetaData,
                          cut: MetaData,
                          nCutPoints: int,
-                         center: Pixel,
+                         center: tuple,
                          repeats: int = 1,
                          version: int = 1) -> None:
         logging.info('')
@@ -104,7 +99,7 @@ class Engraver(Connection):
         data += carve.toByteList(ByteList._double_bytes(CHUNK_BEGINS_AT[1]))
         data += cut.toByteList(ByteList._quadruple_bytes(CHUNK_BEGINS_AT[2]))
         data += ByteList._quadruple_bytes(nCutPoints)
-        data += ByteList._double_bytes_arr([center.x, center.y])
+        data += ByteList._double_bytes_arr(center)
         data += ByteList._single_byte(repeats)
         self.sendWithACK(
             Connection._packet(OPCode.SEND_ENGRAVE_METADATA, data, False))
@@ -119,7 +114,8 @@ class Engraver(Connection):
                 repeats: int,
                 cut: Canvas,
                 carve: MetaData = MetaData('carve', 0, 0),
-                carvePoints=[]) -> None:
+                carvePoints=[],
+                omit_confirmation=True) -> None:
         # array length is [widthInByte * height + len(cutPoints) * 4]
         # carve picture: widthInByte * height
         # cut points: cutPoints, (x, y) in double byte
@@ -131,18 +127,20 @@ class Engraver(Connection):
         logging.info(
             f'preparing cutting meta: {cutMetaData}, center: {center}')
 
-        if not cut.preview():
+        if not cut.preview(show=False, prompt=(not omit_confirmation)):
             logging.warning(
                 'engraving terminated by user: no confirmation during preview')
             return
 
         logging.info(f'sending metadata')
-        self.engrave_metadata(carve, cutMetaData, len(cut), center, repeats)
+        cutPoints = cut.get_engrave_points()
+        self.engrave_metadata(carve, cutMetaData, len(cutPoints), center, repeats)
         self.hello()
         self.hello()
         data = []
         # sequence: x, x>>8, y, y>>8
-        data += ByteList._double_bytes_arr(cut.toList(), BE=True)
+        logging.info(f'points: {cutPoints}')
+        data += ByteList._double_bytes_arr(flatten(cutPoints), BE=True)
         self.engrave_data_chunk(data)
         self.hello()
 
@@ -150,13 +148,17 @@ class Engraver(Connection):
 
 
 if __name__ == '__main__':
-    engraver = Engraver(stdout=False, dry_run=True)
+    engraver = Engraver(stdout=True, dry_run=False)
     engraver.hello()
     engraver.version()
     # engraver.move_to(0, 0)
-    # engraver.move_to(370*20, 370*20)
+    # engraver.move_to(10*20, 10*20)
 
     canvas = Canvas(Shape._drawRect(0, 0, 100, 100))
+    canvas = Canvas()
+    # canvas.addElement(Line(Point(0, 0), Point(0, 10)))
+    # canvas.addElement(Circle(Point(20, 20), 10))
+    # canvas.addElement(Rectangle(Point(10, 10), 20, 20))
     # canvas = Canvas(Shape._drawEdge(Point(0, 0), Point(200, 100)))
     engraver.engrave(1, canvas)
 

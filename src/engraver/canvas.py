@@ -110,10 +110,13 @@ class Canvas():
     def add(self, points: list[Pixel]):
         self.points += points
 
-    def toList(self) -> list[int]:
-        return Shape._toFlatList(self.points)
+    def get_engrave_points(self) -> list[int]:
+        return self.points
+    
+    def get_bounding_box(self) -> list:
+        return Shape._getBoundingBox(self.points)
 
-    def preview(self) -> bool:
+    def preview(self, **kwargs) -> bool:
         CROP_REGION = 999
         DEFAULT_SIZE = 370
         CANVAS_SIZE_INITIAL = min(CROP_REGION, DEFAULT_SIZE) * 20

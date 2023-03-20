@@ -55,6 +55,8 @@ class ACKCode(IntEnum):
     OK = 9
     METADATA_OK = 255
 
+def flatten(points: list) -> list[int]:
+        return list(chain.from_iterable(points))
 
 class ByteList():
     """convert integers to byte lists

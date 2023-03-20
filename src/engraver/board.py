@@ -60,7 +60,7 @@ class Circle(Shape):
         self.radius = radius
 
 
-class Board():
+class Canvas():
     EMPTY = 0
     FILLED = 1
 
@@ -79,7 +79,7 @@ class Board():
         self.height = height
         self.resolution = resolution
         self.elements: list[Element] = []
-        self.image = Image.new('1', self.size(), Board.EMPTY)
+        self.image = Image.new('1', self.size(), Canvas.EMPTY)
 
     def size(self) -> tuple[int, int]:
         return (int(self.width / self.resolution),
@@ -121,15 +121,15 @@ class Board():
             slope = dy / dx
             for xid in range(0, dx, 1 if dx > 0 else -1):
                 self.image.putpixel((x_src + xid, round(xid * slope + x_src)),
-                                    Board.FILLED)
+                                    Canvas.FILLED)
 
     def drawVerticalLine(self, x: int, y: int, length: int) -> None:
         for i in range(0, length, 1 if length > 0 else -1):
-            self.image.putpixel((x, y + i), Board.FILLED)
+            self.image.putpixel((x, y + i), Canvas.FILLED)
 
     def drawHorizontalLine(self, x: int, y: int, length: int) -> None:
         for i in range(0, length, 1 if length > 0 else -1):
-            self.image.putpixel((x + i, y), Board.FILLED)
+            self.image.putpixel((x + i, y), Canvas.FILLED)
 
     def drawRect(self, rect: Rectangle) -> None:
         x0, y0 = self.pixel(
@@ -147,25 +147,35 @@ class Board():
         draw = ImageDraw.Draw(self.image)
         x0, y0 = self.pixel(circle.center)
         r = round(circle.radius / self.resolution)
-        draw.ellipse((x0 - r, y0 - r, x0 + r, y0 + r), outline=Board.FILLED)
+        draw.ellipse((x0 - r, y0 - r, x0 + r, y0 + r), outline=Canvas.FILLED)
         return
 
-    def preview(self, show: bool = True) -> None:
-        self.image = Image.new('1', self.size(), Board.EMPTY)
+    def preview(self, show: bool = True, prompt: bool = True) -> bool:
+        self.image = Image.new('1', self.size(), Canvas.EMPTY)
         for element in self.elements:
             self.draw(element)
         if show:
             self.image.show()
+        if prompt:
+            return len(input("Confirm Preview: ")) != 0
+        return True
+        
 
     def get_engrave_points(self) -> list:
-        self.preview(show=False)
         pixels = np.array(self.image)
-        coords = np.column_stack(np.where(pixels != Board.EMPTY))
-        return Board._order_points(coords.tolist())
+        coords = np.column_stack(np.where(pixels != Canvas.EMPTY))
+        return Canvas._order_points(coords.tolist())
+    
+    def get_bounding_box(self) -> list:
+        bbox = self.image.getbbox()
+        return bbox if bbox else [0, 0, 0, 0]
 
     @staticmethod
     def _order_points(points: list, ind: int = 0):
         # ref: https://stackoverflow.com/questions/37742358/sorting-points-to-form-a-continuous-line
+        if not points:
+            return points
+        
         points_new = [points.pop(ind)]
         pcurr = points_new[-1]
         while len(points) > 0:
@@ -179,7 +189,7 @@ class Board():
     def _animate_pixels(width: int,
                         height: int,
                         points: list,
-                        precision: int = 5) -> None:
+                        precision: int = 10) -> None:
         plt.gca().set_aspect('equal')
         plt.ylim(-100, height + 100)
         plt.xlim(-100, width + 100)
@@ -191,12 +201,10 @@ class Board():
 
 
 if __name__ == '__main__':
-    board = Board()
-    board.addElement(Line(Point(0, 0), Point(10, 10)))
-    board.addElement(Circle(Point(20, 20), 10))
-    board.addElement(Rectangle(Point(10, 10), 20, 20))
-    coords = board.get_engrave_points()
-    print('coords length', len(coords))
-    Board._animate_pixels(*board.size(), coords)
-
+    canvas = Canvas()
+    canvas.addElement(Line(Point(0, 0), Point(10, 10)))
+    canvas.addElement(Circle(Point(20, 20), 10))
+    canvas.addElement(Rectangle(Point(10, 10), 20, 20))
+    coords = canvas.get_engrave_points()
+    Canvas._animate_pixels(*canvas.size(), coords)
     exit(0)
