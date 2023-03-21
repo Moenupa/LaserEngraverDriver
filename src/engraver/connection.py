@@ -53,7 +53,9 @@ class ACKCode(IntEnum):
     VERSION = 4
     ERROR = 8
     OK = 9
-    METADATA_OK = 255
+    METADATA = 255
+    METADATA_OK = 0xfffffffe
+    METADATA_ERR = 0xffffffff
 
 
 def flatten(points: list) -> list[int]:
@@ -99,7 +101,11 @@ class Connection():
     @staticmethod
     def _ack(data: bytes):
         try:
-            return (int(data[0]), ACKCode(data[0]).name)
+            ret, code = int(data[0]), ACKCode(data[0]).name
+            if ret == ACKCode.METADATA:
+                val = int.from_bytes(data[:4], 'big')
+                return (ret, ACKCode(val).name)
+            return ret, code
         except ValueError:
             return (0, f"unknown_{data[0]}")
 
@@ -279,3 +285,9 @@ class Connection():
             return
 
         self.ser.close()
+
+
+if __name__ == '__main__':
+    data = 0xffffffff.to_bytes(4, 'big')
+    data2 = 0xfffffffe.to_bytes(4, 'big')
+    print(Connection._ack(data), Connection._ack(data2))

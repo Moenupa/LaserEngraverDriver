@@ -3,6 +3,7 @@ from math import ceil
 
 from connection import Connection, OPCode, ByteList, flatten
 from board import *
+import time
 
 
 class MetaData():
@@ -115,22 +116,23 @@ class Engraver(Connection):
                 cut: Board,
                 carve: MetaData = MetaData('carve', 0, 0),
                 carvePoints=[],
-                omit_confirmation=True) -> None:
+                require_confirm=False) -> None:
         # array length is [widthInByte * height + len(cutPoints) * 4]
         # carve picture: widthInByte * height
         # cut points: cutPoints, (x, y) in double byte
         logging.info(f'preparing engraving... configured repeats: {repeats}')
-
         logging.info(f'preparing carving meta: {carve}')
-
+        
         center, cutMetaData = MetaData._parse_from('cut', cut)
         logging.info(
             f'preparing cutting meta: {cutMetaData}, center: {center}')
 
-        if not cut.preview(show=False, prompt=(not omit_confirmation)):
-            logging.warning(
-                'engraving terminated by user: no confirmation during preview')
-            return
+        cut.preview()
+        if require_confirm:
+            if len(input('confirmation message: ')) == 0:
+                logging.warning(
+                    'engraving terminated by user: no confirmation during preview')
+                return
 
         logging.info(f'sending metadata')
         cutPoints = cut.get_engrave_points()
@@ -140,7 +142,6 @@ class Engraver(Connection):
         self.hello()
         data = []
         # sequence: x, x>>8, y, y>>8
-        logging.info(f'points: {cutPoints}')
         data += ByteList._double_bytes_arr(flatten(cutPoints), BE=True)
         self.engrave_data_chunk(data)
         self.hello()
@@ -149,17 +150,18 @@ class Engraver(Connection):
 
 
 if __name__ == '__main__':
-    engraver = Engraver(stdout=True, dry_run=False)
+    engraver = Engraver(stdout=False, dry_run=False)
     engraver.hello()
     engraver.version()
-    # engraver.move_to(0, 0)
-    # engraver.move_to(10*20, 10*20)
 
-    # canvas = Canvas(Shape._drawEdge(Pixel(0, 0), Pixel(200, 0)))
     board = Board()
-    # canvas.addElement(Line(Point(0, 0), Point(0, 10)))
-    # canvas.addElement(Circle(Point(20, 20), 10))
-    board.addElement(Rectangle(Point(10, 10), 20, 20))
-    engraver.engrave(1, board)
+    # board.addElement(Line(Point(0, 0), Point(0, 10)))
+    # board.addElement(Circle(Point(20, 20), 10))
+    board.import_pattern('./res/patterns/final.bmp', preview=False)
+    pattern_board = board.generate_on_pattern(preview=False)
+    engraver.engrave(1, pattern_board, require_confirm=True)
+    
+    time.sleep(5)
+    engraver.move_to(0, 0)
 
     engraver.close()

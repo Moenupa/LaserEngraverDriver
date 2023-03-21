@@ -68,7 +68,8 @@ class Board():
     def __init__(self,
                  width: float = 370.0,
                  height: float = 370.0,
-                 resolution: float = 0.05) -> None:
+                 resolution: float = 0.05,
+                 image: list = []) -> None:
         """width and height of the board, measured in mm.
 
         Args:
@@ -83,6 +84,8 @@ class Board():
         self.image = Image.new('1', self.size(), Board.EMPTY)
         self.pattern = Image.new('1', self.size(), Board.EMPTY)
         self.pattern_pixels = np.array([])
+        for x, y in image:
+            self.image.putpixel((x, y), Board.FILLED)
 
     def size(self) -> tuple[int, int]:
         return (int(self.width / self.resolution),
@@ -159,15 +162,14 @@ class Board():
             return
         
         image = Image.open(path).convert('L')
-        pixels = np.array(image) 
-        points = np.column_stack(np.where(pixels != 0))
+        points = Board._get_engrave_points(image, ordered=False)
         for p in points:
             self.pattern.putpixel(p, Board.FILLED)
         if preview:
             self.pattern.show()
         self.pattern_pixels = points
     
-    def generate_on_pattern(self, preview: bool = True, radius: float = 0.5) -> None:
+    def generate_on_pattern(self, preview: bool = True, radius: float = 0.5) -> 'Board':
         random_pattern = Image.new('1', (1000, 1000), Board.EMPTY)
         draw = ImageDraw.Draw(random_pattern)
         x0, y0 = random.choice(self.pattern_pixels)
@@ -176,27 +178,37 @@ class Board():
         diff = ImageChops.logical_xor(random_pattern, self.pattern)
         if preview:
             diff.show()
+        points = Board._get_engrave_points(random_pattern, ordered=False)
+        return Board(50, 50, 0.05, points)
 
     def update(self) -> bool:
         for element in self.elements:
             self.draw(element)
 
-    def preview(self, show: bool = True, prompt: bool = True) -> bool:
-        self.update()
-        if show:
-            self.image.show()
-        if prompt:
-            return len(input("Confirm Preview: ")) != 0
-        return True
+    def preview(self) -> None:
+        self.image.show()
+    
+    @staticmethod
+    def _get_engrave_points(image: Image, ordered: bool = True) -> list:
+        pixels = np.array(image)
+        coords = np.flip(np.column_stack(np.where(pixels != Board.EMPTY)), axis=1)
+        if ordered:
+            return Board._order_points(coords.tolist())
+        return coords.tolist()
 
-    def get_engrave_points(self) -> list:
-        pixels = np.array(self.image)
-        coords = np.column_stack(np.where(pixels != Board.EMPTY))
-        return Board._order_points(coords.tolist())
+    def get_engrave_points(self, ordered: bool = True) -> list:
+        return Board._get_engrave_points(self.image, ordered)
     
     def get_bounding_box(self) -> list:
-        bbox = self.image.getbbox()
-        return bbox if bbox else [0, 0, 0, 0]
+        points = self.get_engrave_points()
+        if len(points) == 0:
+            return (0, 0, 0, 0)
+        x0, y0 = points[0]
+        x1, y1 = x0, y0
+        for x, y in points:
+            x0, y0 = min(x0, x), min(y0, y)
+            x1, y1 = max(x1, x), max(y1, y)
+        return (x0, y0, x1, y1)
 
     @staticmethod
     def _order_points(points: list, ind: int = 0):
@@ -237,7 +249,8 @@ if __name__ == '__main__':
     # board.preview()
     # board.update()
     board.import_pattern('./res/patterns/final.bmp', preview=False)
-    board.generate_on_pattern()
+    new_board = board.generate_on_pattern()
+    new_board.preview()
     # coords = board.get_engrave_points()
     # Board._animate_pixels(*board.size(), coords)
     # print(len(coords))
