@@ -5,11 +5,12 @@ import numpy as np
 from typing import Callable
 from filters import Filters
 from src.config import Config
+from functools import partial
+
 
 ESC = 27
 RESOURCE_PATH = 'res'
 CAPTURE_PATH = os.path.join(RESOURCE_PATH, 'captures')
-PATTERNS_PATH = os.path.join(RESOURCE_PATH, 'patterns')
 PATTERN_IMG = os.path.join(RESOURCE_PATH, 'template0.png')
 
 
@@ -20,9 +21,6 @@ def save(dir: str, id: str | int, img: cv2.Mat, ext: str = 'png'):
     cv2.imwrite(f'{abspath}', img)
 
 
-PREPROCESSING_CALLBACK = {
-    ord('p'): lambda id, img: save(PATTERNS_PATH, id, img, 'bmp'),
-}
 CAPTURE_CALLBACK = {
     ord('c'): lambda id, img: save(CAPTURE_PATH, id, img),
 }
@@ -45,13 +43,31 @@ class Display():
 
     @staticmethod
     def display(_callback: dict = SAVE_CALLBACK, *args, **kwargs):
+        """Display multiple images, each in its own window.
+        
+        `ARGS`:
+        ```markdown
+        - `_callback`:  callback binding for each key, e.g. pressing 's'
+                        to save all displayed images into `res/` folder
+        - `*args`:      images to be displayed
+        - `**kwargs`:   images to be displayed, key as window name
+        ```
+        
+        `SAMPLE USAGE`:
+        ```py
+        img, img2, img3, ... = cv2.imread('image.png'), ...
+        Display.display(img, img2, img3)               # display 3 images
+        Display.display(img=img, img2=img2, img3=img3) # display 3 images, custom window names
+        Display.display(custom_callback, img)          # trigger callback once keyboard pressed
+        ```
+        """
         logging.info(
             f'displaying images for {len(args)}+{len(kwargs)} displays')
         while True:
             for k, v in enumerate(args):
                 cv2.imshow(f'img_{k:02d}', v)
             for k, v in kwargs.items():
-                cv2.imshow(f'{k}', v)
+                cv2.imshow(k, v)
 
             key = cv2.waitKey(30)
             # execute callback functions once triggered
@@ -61,7 +77,7 @@ class Display():
                     f'callback {chr(key)} triggered for {len(args)}+{len(kwargs)} displayes'
                 )
                 for k, v in enumerate(args):
-                    _callback_func(k, v)
+                    _callback_func(f'img_{k:02d}', v)
                 for k, v in kwargs.items():
                     _callback_func(k, v)
             elif key == ESC:

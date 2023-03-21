@@ -30,8 +30,8 @@ class MetaData():
         ret += ByteList._double_bytes_arr([self.power, self.depth])
         return ret
 
-    def _parse_from(name: str, canvas: Board) -> tuple:
-        x0, y0, x1, y1 = canvas.get_bounding_box()
+    def _parse_from(name: str, board: Board) -> tuple:
+        x0, y0, x1, y1 = board.get_bounding_box()
         center = ((x0 + x1) // 2, (y0 + y1) // 2)
         meta_data = MetaData(name, x1 - x0, y1 - y0)
         return center, meta_data
@@ -127,7 +127,7 @@ class Engraver(Connection):
         logging.info(
             f'preparing cutting meta: {cutMetaData}, center: {center}')
 
-        cut.preview()
+        cut.preview("ENGRAVE PATTERN CONFIRMATION")
         if require_confirm:
             if len(input('confirmation message: ')) == 0:
                 logging.warning(
@@ -150,19 +150,14 @@ class Engraver(Connection):
 
 
 if __name__ == '__main__':
-    engraver = Engraver(stdout=False, dry_run=False)
+    engraver = Engraver(stdout=False, dry_run=True)
     engraver.hello()
     engraver.version()
 
     board = Board()
-    # board.addElement(Line(Point(0, 0), Point(0, 10)))
-    board.addElement(Rectangle(Point(20, 20), 40, 40))
-    board.update()
-    #board.import_pattern('./res/patterns/final.bmp', preview=False)
-    #pattern_board = board.generate_on_pattern(preview=False)
+    board.import_pattern('./res/patterns/final.bmp', preview=False)
+    board.generate_on_pattern(show_diff=False)
+    board.drawPosRect(0, 0, 880, 880)
     engraver.engrave(1, board, require_confirm=True)
-    
-    time.sleep(5)
-    engraver.move_to(0, 0)
 
     engraver.close()

@@ -169,15 +169,3 @@ class Canvas():
         print("pts count:", len(self.points))
         pygame.quit()
         return engrave
-
-
-if __name__ == "__main__":
-    from board import Board, Line, Circle, Rectangle, Point
-    board = Board()
-    board.addElement(Line(Point(0, 0), Point(10, 10)))
-    board.addElement(Circle(Point(20, 20), 10))
-    board.addElement(Rectangle(Point(10, 10), 20, 20))
-    board.update()
-    print('board pt count:', len(board.get_engrave_points()))
-    canvas = Canvas(board.get_engrave_points())
-    print(canvas.preview())

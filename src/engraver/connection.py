@@ -18,7 +18,7 @@ class MODEL_ID(IntEnum):
 class MODEL_META():
 
     def __init__(self, w, h, hi, mid, lo) -> None:
-        # canvas (grid) width and height
+        # grid width and height
         self.w, self.h = w, h
         # accuracy defaults, high, mid and low
         self.hi, self.mid, self.lo = hi, mid, lo
