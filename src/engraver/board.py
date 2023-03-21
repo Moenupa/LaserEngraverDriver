@@ -1,8 +1,9 @@
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageChops
 import math
 import numpy as np
 import matplotlib.pyplot as plt
-
+import os.path
+import random
 
 class Point():
     """A point in real-world 2D engraving space, in a 370mm x 370mm board."""
@@ -80,6 +81,8 @@ class Board():
         self.resolution = resolution
         self.elements: list[Element] = []
         self.image = Image.new('1', self.size(), Board.EMPTY)
+        self.pattern = Image.new('1', self.size(), Board.EMPTY)
+        self.pattern_pixels = np.array([])
 
     def size(self) -> tuple[int, int]:
         return (int(self.width / self.resolution),
@@ -150,8 +153,31 @@ class Board():
         draw.ellipse((x0 - r, y0 - r, x0 + r, y0 + r), outline=Board.FILLED)
         return
 
+    def import_pattern(self, path, preview: bool = True) -> None:
+        if not os.path.exists(path):
+            print(f'{path} does not exist')
+            return
+        
+        image = Image.open(path).convert('L')
+        pixels = np.array(image) 
+        points = np.column_stack(np.where(pixels != 0))
+        for p in points:
+            self.pattern.putpixel(p, Board.FILLED)
+        if preview:
+            self.pattern.show()
+        self.pattern_pixels = points
+    
+    def generate_on_pattern(self, preview: bool = True, radius: float = 0.5) -> None:
+        random_pattern = Image.new('1', (1000, 1000), Board.EMPTY)
+        draw = ImageDraw.Draw(random_pattern)
+        x0, y0 = random.choice(self.pattern_pixels)
+        r = round(radius / self.resolution)
+        draw.ellipse((x0 - r, y0 - r, x0 + r, y0 + r), outline=Board.FILLED)
+        diff = ImageChops.logical_xor(random_pattern, self.pattern)
+        if preview:
+            diff.show()
+
     def update(self) -> bool:
-        self.image = Image.new('1', self.size(), Board.EMPTY)
         for element in self.elements:
             self.draw(element)
 
@@ -191,6 +217,7 @@ class Board():
     def _animate_pixels(width: int,
                         height: int,
                         points: list,
+                        animation_delay: float = 0.0001,
                         precision: int = 10) -> None:
         plt.gca().set_aspect('equal')
         plt.ylim(-100, height + 100)
@@ -198,17 +225,20 @@ class Board():
         for x, y in points:
             if x % precision == 0 and y % precision == 0:
                 plt.plot(x, y, 'go', markersize=1)
-                plt.pause(0.0001)
+                plt.pause(animation_delay)
         plt.show()
 
 
 if __name__ == '__main__':
     board = Board()
-    board.addElement(Line(Point(0, 0), Point(10, 10)))
-    board.addElement(Circle(Point(20, 20), 10))
-    board.addElement(Rectangle(Point(10, 10), 20, 20))
-    board.preview()
-    coords = board.get_engrave_points()
+    # board.addElement(Line(Point(0, 0), Point(10, 10)))
+    # board.addElement(Circle(Point(20, 20), 10))
+    # board.addElement(Rectangle(Point(10, 10), 20, 20))
+    # board.preview()
+    # board.update()
+    board.import_pattern('./res/patterns/final.bmp', preview=False)
+    board.generate_on_pattern()
+    # coords = board.get_engrave_points()
     # Board._animate_pixels(*board.size(), coords)
-    print(coords)
+    # print(len(coords))
     exit(0)

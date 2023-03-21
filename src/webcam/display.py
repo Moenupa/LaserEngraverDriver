@@ -6,8 +6,6 @@ from typing import Callable
 from filters import Filters
 from src.config import Config
 
-config = Config(stdout=False)
-
 ESC = 27
 RESOURCE_PATH = 'res'
 CAPTURE_PATH = os.path.join(RESOURCE_PATH, 'captures')
@@ -23,7 +21,7 @@ def save(dir: str, id: str | int, img: cv2.Mat, ext: str = 'png'):
 
 
 PREPROCESSING_CALLBACK = {
-    ord('p'): lambda id, img: save(PATTERNS_PATH, id, img),
+    ord('p'): lambda id, img: save(PATTERNS_PATH, id, img, 'bmp'),
 }
 CAPTURE_CALLBACK = {
     ord('c'): lambda id, img: save(CAPTURE_PATH, id, img),
@@ -31,6 +29,7 @@ CAPTURE_CALLBACK = {
 SAVE_CALLBACK = {
     ord('s'): lambda id, img: save(RESOURCE_PATH, id, img),
 }
+global config
 LOGGING_CALLBACK = {
     # ord('l'): lambda id, img: save(config.log_dir, id, img)
     ord('l'):
@@ -106,6 +105,7 @@ def get_plane(x: tuple, y: tuple):
 
 
 if __name__ == '__main__':
+    config = Config(stdout=True)
     pattern = cv2.imread(PATTERN_IMG, cv2.CV_8U)
     w, h = pattern.shape[::-1]
 
