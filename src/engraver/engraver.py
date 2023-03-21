@@ -156,10 +156,11 @@ if __name__ == '__main__':
 
     board = Board()
     # board.addElement(Line(Point(0, 0), Point(0, 10)))
-    # board.addElement(Circle(Point(20, 20), 10))
-    board.import_pattern('./res/patterns/final.bmp', preview=False)
-    pattern_board = board.generate_on_pattern(preview=False)
-    engraver.engrave(1, pattern_board, require_confirm=True)
+    board.addElement(Rectangle(Point(20, 20), 40, 40))
+    board.update()
+    #board.import_pattern('./res/patterns/final.bmp', preview=False)
+    #pattern_board = board.generate_on_pattern(preview=False)
+    engraver.engrave(1, board, require_confirm=True)
     
     time.sleep(5)
     engraver.move_to(0, 0)

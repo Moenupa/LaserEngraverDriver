@@ -250,6 +250,8 @@ if __name__ == '__main__':
     # board.update()
     board.import_pattern('./res/patterns/final.bmp', preview=False)
     new_board = board.generate_on_pattern()
+    new_board.addElement(Rectangle(Point(22, 22), 44, 44))
+    new_board.update()
     new_board.preview()
     # coords = board.get_engrave_points()
     # Board._animate_pixels(*board.size(), coords)
