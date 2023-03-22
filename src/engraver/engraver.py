@@ -127,7 +127,7 @@ class Engraver(Connection):
         logging.info(
             f'preparing cutting meta: {cutMetaData}, center: {center}')
 
-        cut.preview("ENGRAVE PATTERN CONFIRMATION")
+        cut.preview()
         if require_confirm:
             if len(input('confirmation message: ')) == 0:
                 logging.warning(
@@ -150,13 +150,13 @@ class Engraver(Connection):
 
 
 if __name__ == '__main__':
-    engraver = Engraver(stdout=False, dry_run=True)
+    engraver = Engraver(stdout=False, dry_run=False)
     engraver.hello()
     engraver.version()
 
     board = Board()
     board.import_pattern('./res/patterns/final.bmp', preview=False)
-    board.generate_on_pattern(show_diff=False)
+    board.generate_on_pattern(show_diff=True)
     board.drawPosRect(0, 0, 880, 880)
     engraver.engrave(1, board, require_confirm=True)
 

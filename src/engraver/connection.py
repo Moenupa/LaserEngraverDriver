@@ -50,6 +50,7 @@ class OPCode(IntEnum):
 
 
 class ACKCode(IntEnum):
+    DRY_RUN = 0
     VERSION = 4
     ERROR = 8
     OK = 9

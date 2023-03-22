@@ -139,7 +139,7 @@ class Board():
         self.drawCircle(x0, y0, 10)
         diff = ImageChops.logical_xor(self.image, self.pattern)
         if show_diff:
-            Board._preview(diff, "diff")
+            Board._preview(diff)
 
     def preview(self, *args, **kwargs) -> None:
         Board._preview(self.image, *args, **kwargs)
@@ -167,7 +167,7 @@ class Board():
         return (x0, y0, x1, y1)
     
     @staticmethod
-    def _preview(image: Image, crop: tuple | None = (0, 0, 1000, 1000), *args, **kwargs) -> None:
+    def _preview(image: Image.Image, crop: tuple | None = (0, 0, 1000, 1000), *args, **kwargs) -> None:
         if crop:
             image.crop(crop).show(*args, **kwargs)
         else:
