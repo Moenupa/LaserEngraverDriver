@@ -15,6 +15,14 @@ class Pixel():
 
     def __str__(self):
         return f'({self.x}, {self.y})'
+    
+    @staticmethod
+    def translate_from_mm(x: float, y: float, resolution: float = 0.05) -> 'Pixel':
+        return Pixel(int(x / resolution), int(y / resolution))
+    
+    @staticmethod
+    def translate_coords_from_mm(coords: list[float], resolution: float = 0.05) -> list[int]:
+        return [int(x / resolution) for x in coords]
 
 
 class Element():
@@ -82,6 +90,7 @@ class Board():
         self.elements: list[Element] = []
         self.image = Image.new('1', self.size(), Board.EMPTY)
         self.pattern = Image.new('1', self.size(), Board.EMPTY)
+        self.pattern_size = (0, 0)
         self.pattern_pixels = np.array([])
         for x, y in image:
             self.image.putpixel((x, y), Board.FILLED)
@@ -125,7 +134,8 @@ class Board():
             print(f'{path} does not exist')
             return
         
-        image = Image.open(path).convert('L')
+        image = Image.open(path).convert('1')
+        self.pattern_size = image.size
         points = Board._get_engrave_points(image, ordered=False)
         for p in points:
             self.pattern.putpixel(p, Board.FILLED)
@@ -133,13 +143,24 @@ class Board():
             self.pattern.show()
         self.pattern_pixels = points
     
-    def generate_on_pattern(self, show_diff: bool = True) -> None:
-        x0, y0 = random.choice(self.pattern_pixels)
-        # change here if you want to change the random pattern
-        self.drawCircle(x0, y0, 10)
-        diff = ImageChops.logical_xor(self.image, self.pattern)
+    def generate_noise_on_pattern(self, n: int = 1, x_offset: int = 0, y_offset: int = 0, show_diff: bool = True) -> None:
+        dx, dy = self.pattern_size
+        for i in range(n):
+            # find a random point from the pattern, and then draw a circle
+            x0, y0 = random.choice(self.pattern_pixels)
+            # move along x-axis only, keep y axis straight
+            center_x, center_y = x0 + (x_offset + dx) * i, y0 + (y_offset + 0) * i
+            self.drawCircle(center_x, center_y, 10)
+        
         if show_diff:
+            diff = ImageChops.logical_xor(self.image, self.pattern)
             Board._preview(diff)
+    
+    def generate_positioning_on_pattern(self, n: int = 1, x_offset: int = 0, y_offset: int = 0) -> None:
+        dx, dy = self.pattern_size
+        for i in range(n):
+            # move along x-axis only, keep y axis straight
+            self.drawPosRect((x_offset + dx) * i, (y_offset + 0) * i, dx, dy)
 
     def preview(self, *args, **kwargs) -> None:
         Board._preview(self.image, *args, **kwargs)
@@ -167,7 +188,7 @@ class Board():
         return (x0, y0, x1, y1)
     
     @staticmethod
-    def _preview(image: Image.Image, crop: tuple | None = (0, 0, 1000, 1000), *args, **kwargs) -> None:
+    def _preview(image: Image.Image, crop: tuple | None = (0, 0, 2000, 1000), *args, **kwargs) -> None:
         if crop:
             image.crop(crop).show(*args, **kwargs)
         else:
@@ -208,8 +229,8 @@ class Board():
 if __name__ == '__main__':
     board = Board()
     board.import_pattern('./res/patterns/final.bmp', preview=False)
-    board.generate_on_pattern(show_diff=True)
-    board.drawPosRect(0, 0, 880, 880)
+    board.generate_noise_on_pattern(n=2, x_offset=100)
+    board.generate_positioning_on_pattern(n=2, x_offset=100)
     board.preview()
     Board._animate_pixels(board.get_engrave_points())
     exit(0)

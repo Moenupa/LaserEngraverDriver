@@ -156,8 +156,8 @@ if __name__ == '__main__':
 
     board = Board()
     board.import_pattern('./res/patterns/final.bmp', preview=False)
-    board.generate_on_pattern(show_diff=True)
-    board.drawPosRect(0, 0, 880, 880)
+    board.generate_noise_on_pattern(n=2, x_offset=100)
+    board.generate_positioning_on_pattern(n=2, x_offset=100)
     engraver.engrave(1, board, require_confirm=True)
 
     engraver.close()
