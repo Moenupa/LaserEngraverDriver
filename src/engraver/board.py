@@ -229,8 +229,8 @@ class Board():
 if __name__ == '__main__':
     board = Board()
     board.import_pattern('./res/patterns/final.bmp', preview=False)
-    board.generate_noise_on_pattern(n=2, x_offset=100)
-    board.generate_positioning_on_pattern(n=2, x_offset=100)
+    board.generate_noise_on_pattern(n=2, x_offset=120)
+    board.generate_positioning_on_pattern(n=2, x_offset=120)
     board.preview()
-    Board._animate_pixels(board.get_engrave_points())
+    # Board._animate_pixels(board.get_engrave_points())
     exit(0)
